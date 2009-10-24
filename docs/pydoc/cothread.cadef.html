@@ -1,0 +1,357 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module cothread.cadef</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong><a href="cothread.html"><font color="#ffffff">cothread</font></a>.cadef</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/dls_sw/prod/common/python/cothread/1-14/cothread/cadef.py">/dls_sw/prod/common/python/cothread/1-14/cothread/cadef.py</a></font></td></tr></table>
+    <p><tt>Functions&nbsp;imported&nbsp;directly&nbsp;from&nbsp;libca.<br>
+&nbsp;<br>
+See&nbsp;<a href="http://he3.dartmouth.edu/manuals/CAref.html">http://he3.dartmouth.edu/manuals/CAref.html</a>&nbsp;for&nbsp;detailed&nbsp;documentation<br>
+of&nbsp;the&nbsp;functions&nbsp;below.<br>
+&nbsp;<br>
+Actually,&nbsp;see&nbsp;<a href="http://www.aps.anl.gov/epics/base/R3-14/8-docs/CAref.html">http://www.aps.anl.gov/epics/base/R3-14/8-docs/CAref.html</a><br>
+&nbsp;<br>
+This&nbsp;module&nbsp;is&nbsp;a&nbsp;thin&nbsp;wrapper&nbsp;over&nbsp;the&nbsp;cadef.h&nbsp;file&nbsp;to&nbsp;be&nbsp;found&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;/dls_sw/epics/R3.14.8.2/base/include/cadef.h</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#fffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="ctypes.html">ctypes</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="_ctypes.html#Structure">_ctypes.Structure</a>(_ctypes._CData)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="cothread.cadef.html#ca_connection_handler_args">ca_connection_handler_args</a>
+</font></dt><dt><font face="helvetica, arial"><a href="cothread.cadef.html#event_handler_args">event_handler_args</a>
+</font></dt><dt><font face="helvetica, arial"><a href="cothread.cadef.html#exception_handler_args">exception_handler_args</a>
+</font></dt></dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="exceptions.html#Exception">exceptions.Exception</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="cothread.cadef.html#CAException">CAException</a>
+</font></dt><dt><font face="helvetica, arial"><a href="cothread.cadef.html#Disconnected">Disconnected</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="CAException">class <strong>CAException</strong></a>(<a href="exceptions.html#Exception">exceptions.Exception</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="exceptions.html#Exception">Exception</a>&nbsp;in&nbsp;response&nbsp;to&nbsp;calling&nbsp;ca_&nbsp;method.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="CAException-__init__"><strong>__init__</strong></a>(self, status, function)</dt></dl>
+
+<dl><dt><a name="CAException-__str__"><strong>__str__</strong></a>(self)</dt></dl>
+
+<hr>
+Methods inherited from <a href="exceptions.html#Exception">exceptions.Exception</a>:<br>
+<dl><dt><a name="CAException-__getitem__"><strong>__getitem__</strong></a>(...)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Disconnected">class <strong>Disconnected</strong></a>(<a href="exceptions.html#Exception">exceptions.Exception</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;channel&nbsp;is&nbsp;disconnected.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Disconnected-__init__"><strong>__init__</strong></a>(self, chid)</dt></dl>
+
+<dl><dt><a name="Disconnected-__str__"><strong>__str__</strong></a>(self)</dt></dl>
+
+<hr>
+Methods inherited from <a href="exceptions.html#Exception">exceptions.Exception</a>:<br>
+<dl><dt><a name="Disconnected-__getitem__"><strong>__getitem__</strong></a>(...)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="ca_connection_handler_args">class <strong>ca_connection_handler_args</strong></a>(<a href="_ctypes.html#Structure">_ctypes.Structure</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>#&nbsp;Connection&nbsp;handler,&nbsp;used&nbsp;to&nbsp;report&nbsp;channel&nbsp;connection&nbsp;status.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="cothread.cadef.html#ca_connection_handler_args">ca_connection_handler_args</a></dd>
+<dd><a href="_ctypes.html#Structure">_ctypes.Structure</a></dd>
+<dd>_ctypes._CData</dd>
+<dd><a href="__builtin__.html#object">__builtin__.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__dict__</strong> = &lt;dictproxy object&gt;<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dl>
+
+<dl><dt><strong>__weakref__</strong> = &lt;attribute '__weakref__' of 'ca_connection_handler_args' objects&gt;<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dl>
+
+<dl><dt><strong>chid</strong> = &lt;Field type=c_void_p, ofs=0, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>op</strong> = &lt;Field type=c_long, ofs=4, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<hr>
+Methods inherited from <a href="_ctypes.html#Structure">_ctypes.Structure</a>:<br>
+<dl><dt><a name="ca_connection_handler_args-__init__"><strong>__init__</strong></a>(...)</dt><dd><tt>x.<a href="#ca_connection_handler_args-__init__">__init__</a>(...)&nbsp;initializes&nbsp;x;&nbsp;see&nbsp;x.__class__.__doc__&nbsp;for&nbsp;signature</tt></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="_ctypes.html#Structure">_ctypes.Structure</a>:<br>
+<dl><dt><strong>__new__</strong> = &lt;built-in method __new__ of _ctypes.StructType object&gt;<dd><tt>T.<a href="#ca_connection_handler_args-__new__">__new__</a>(S,&nbsp;...)&nbsp;-&gt;&nbsp;a&nbsp;new&nbsp;object&nbsp;with&nbsp;type&nbsp;S,&nbsp;a&nbsp;subtype&nbsp;of&nbsp;T</tt></dl>
+
+<hr>
+Methods inherited from _ctypes._CData:<br>
+<dl><dt><a name="ca_connection_handler_args-__ctypes_from_outparam__"><strong>__ctypes_from_outparam__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="ca_connection_handler_args-__hash__"><strong>__hash__</strong></a>(...)</dt><dd><tt>x.<a href="#ca_connection_handler_args-__hash__">__hash__</a>()&nbsp;&lt;==&gt;&nbsp;hash(x)</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="event_handler_args">class <strong>event_handler_args</strong></a>(<a href="_ctypes.html#Structure">_ctypes.Structure</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>#&nbsp;Event&nbsp;handler&nbsp;for&nbsp;ca_array_get_callback,&nbsp;ca_array_put_callback,<br>
+#&nbsp;ca_create_subscription.&nbsp;&nbsp;The&nbsp;event&nbsp;handler&nbsp;is&nbsp;called&nbsp;when&nbsp;the&nbsp;action<br>
+#&nbsp;completes&nbsp;or&nbsp;the&nbsp;data&nbsp;is&nbsp;available.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="cothread.cadef.html#event_handler_args">event_handler_args</a></dd>
+<dd><a href="_ctypes.html#Structure">_ctypes.Structure</a></dd>
+<dd>_ctypes._CData</dd>
+<dd><a href="__builtin__.html#object">__builtin__.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__dict__</strong> = &lt;dictproxy object&gt;<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dl>
+
+<dl><dt><strong>__weakref__</strong> = &lt;attribute '__weakref__' of 'event_handler_args' objects&gt;<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dl>
+
+<dl><dt><strong>chid</strong> = &lt;Field type=c_long, ofs=4, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>count</strong> = &lt;Field type=c_long, ofs=12, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>raw_dbr</strong> = &lt;Field type=c_void_p, ofs=16, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>status</strong> = &lt;Field type=c_long, ofs=20, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>type</strong> = &lt;Field type=c_long, ofs=8, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>usr</strong> = &lt;Field type=py_object, ofs=0, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<hr>
+Methods inherited from <a href="_ctypes.html#Structure">_ctypes.Structure</a>:<br>
+<dl><dt><a name="event_handler_args-__init__"><strong>__init__</strong></a>(...)</dt><dd><tt>x.<a href="#event_handler_args-__init__">__init__</a>(...)&nbsp;initializes&nbsp;x;&nbsp;see&nbsp;x.__class__.__doc__&nbsp;for&nbsp;signature</tt></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="_ctypes.html#Structure">_ctypes.Structure</a>:<br>
+<dl><dt><strong>__new__</strong> = &lt;built-in method __new__ of _ctypes.StructType object&gt;<dd><tt>T.<a href="#event_handler_args-__new__">__new__</a>(S,&nbsp;...)&nbsp;-&gt;&nbsp;a&nbsp;new&nbsp;object&nbsp;with&nbsp;type&nbsp;S,&nbsp;a&nbsp;subtype&nbsp;of&nbsp;T</tt></dl>
+
+<hr>
+Methods inherited from _ctypes._CData:<br>
+<dl><dt><a name="event_handler_args-__ctypes_from_outparam__"><strong>__ctypes_from_outparam__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="event_handler_args-__hash__"><strong>__hash__</strong></a>(...)</dt><dd><tt>x.<a href="#event_handler_args-__hash__">__hash__</a>()&nbsp;&lt;==&gt;&nbsp;hash(x)</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="exception_handler_args">class <strong>exception_handler_args</strong></a>(<a href="_ctypes.html#Structure">_ctypes.Structure</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>#&nbsp;<a href="exceptions.html#Exception">Exception</a>&nbsp;handler,&nbsp;called&nbsp;to&nbsp;report&nbsp;asynchronous&nbsp;errors&nbsp;that&nbsp;have&nbsp;no&nbsp;other<br>
+#&nbsp;report&nbsp;path.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="cothread.cadef.html#exception_handler_args">exception_handler_args</a></dd>
+<dd><a href="_ctypes.html#Structure">_ctypes.Structure</a></dd>
+<dd>_ctypes._CData</dd>
+<dd><a href="__builtin__.html#object">__builtin__.object</a></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__dict__</strong> = &lt;dictproxy object&gt;<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dl>
+
+<dl><dt><strong>__weakref__</strong> = &lt;attribute '__weakref__' of 'exception_handler_args' objects&gt;<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dl>
+
+<dl><dt><strong>addr</strong> = &lt;Field type=c_void_p, ofs=16, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>chid</strong> = &lt;Field type=c_void_p, ofs=4, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>count</strong> = &lt;Field type=c_long, ofs=12, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>ctx</strong> = &lt;Field type=c_char_p, ofs=28, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>lineNo</strong> = &lt;Field type=c_long, ofs=36, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>op</strong> = &lt;Field type=c_long, ofs=24, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>pFile</strong> = &lt;Field type=c_char_p, ofs=32, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>stat</strong> = &lt;Field type=c_long, ofs=20, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>type</strong> = &lt;Field type=c_long, ofs=8, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<dl><dt><strong>usr</strong> = &lt;Field type=c_void_p, ofs=0, size=4&gt;<dd><tt><a href="_ctypes.html#Structure">Structure</a>/Union&nbsp;member</tt></dl>
+
+<hr>
+Methods inherited from <a href="_ctypes.html#Structure">_ctypes.Structure</a>:<br>
+<dl><dt><a name="exception_handler_args-__init__"><strong>__init__</strong></a>(...)</dt><dd><tt>x.<a href="#exception_handler_args-__init__">__init__</a>(...)&nbsp;initializes&nbsp;x;&nbsp;see&nbsp;x.__class__.__doc__&nbsp;for&nbsp;signature</tt></dd></dl>
+
+<hr>
+Data and other attributes inherited from <a href="_ctypes.html#Structure">_ctypes.Structure</a>:<br>
+<dl><dt><strong>__new__</strong> = &lt;built-in method __new__ of _ctypes.StructType object&gt;<dd><tt>T.<a href="#exception_handler_args-__new__">__new__</a>(S,&nbsp;...)&nbsp;-&gt;&nbsp;a&nbsp;new&nbsp;object&nbsp;with&nbsp;type&nbsp;S,&nbsp;a&nbsp;subtype&nbsp;of&nbsp;T</tt></dl>
+
+<hr>
+Methods inherited from _ctypes._CData:<br>
+<dl><dt><a name="exception_handler_args-__ctypes_from_outparam__"><strong>__ctypes_from_outparam__</strong></a>(...)</dt></dl>
+
+<dl><dt><a name="exception_handler_args-__hash__"><strong>__hash__</strong></a>(...)</dt><dd><tt>x.<a href="#exception_handler_args-__hash__">__hash__</a>()&nbsp;&lt;==&gt;&nbsp;hash(x)</tt></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-convert_py_object"><strong>convert_py_object</strong></a>(object, function, args)</dt><dd><tt>#&nbsp;We&nbsp;set&nbsp;things&nbsp;up&nbsp;so&nbsp;that&nbsp;the&nbsp;data&nbsp;type&nbsp;returned&nbsp;by&nbsp;ca_puser()&nbsp;below&nbsp;is&nbsp;a<br>
+#&nbsp;Python&nbsp;object&nbsp;(to&nbsp;be&nbsp;precise,&nbsp;the&nbsp;argument&nbsp;passed&nbsp;in&nbsp;to&nbsp;ca_create_channel),<br>
+#&nbsp;but&nbsp;this&nbsp;means&nbsp;that&nbsp;we&nbsp;need&nbsp;to&nbsp;get&nbsp;the&nbsp;reference&nbsp;counting&nbsp;right.<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;ctypes&nbsp;library&nbsp;assumes&nbsp;when&nbsp;a&nbsp;routine&nbsp;returns&nbsp;a&nbsp;py_object&nbsp;type&nbsp;that<br>
+#&nbsp;the&nbsp;called&nbsp;routine&nbsp;has&nbsp;already&nbsp;incremented&nbsp;the&nbsp;object's&nbsp;reference&nbsp;count.<br>
+#&nbsp;If&nbsp;the&nbsp;object&nbsp;is&nbsp;just&nbsp;a&nbsp;void*&nbsp;then&nbsp;this&nbsp;isn't&nbsp;going&nbsp;to&nbsp;be&nbsp;so:&nbsp;this&nbsp;routine<br>
+#&nbsp;when&nbsp;assigned&nbsp;to&nbsp;errcheck&nbsp;will&nbsp;resolve&nbsp;this&nbsp;problem.</tt></dd></dl>
+ <dl><dt><a name="-expect_ECA_NORMAL"><strong>expect_ECA_NORMAL</strong></a>(status, function, args)</dt><dd><tt>#&nbsp;For&nbsp;routines&nbsp;which&nbsp;are&nbsp;simply&nbsp;expected&nbsp;to&nbsp;succeed&nbsp;this&nbsp;routine&nbsp;should&nbsp;be<br>
+#&nbsp;assigned&nbsp;to&nbsp;the&nbsp;routine's&nbsp;errcheck&nbsp;attribute.</tt></dd></dl>
+ <dl><dt><a name="-expect_connected"><strong>expect_connected</strong></a>(sentinel, chid<font color="#909090">=0</font>)</dt><dd><tt>sentinel&nbsp;is&nbsp;the&nbsp;disconnected&nbsp;notification&nbsp;value&nbsp;to&nbsp;check&nbsp;for,&nbsp;and&nbsp;chid<br>
+is&nbsp;the&nbsp;position&nbsp;in&nbsp;the&nbsp;argument&nbsp;list&nbsp;of&nbsp;the&nbsp;channel&nbsp;being&nbsp;inspected.</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>CA_OP_ADD_EVENT</strong> = 3<br>
+<strong>CA_OP_CLEAR_EVENT</strong> = 4<br>
+<strong>CA_OP_CONN_DOWN</strong> = 7<br>
+<strong>CA_OP_CONN_UP</strong> = 6<br>
+<strong>CA_OP_CREATE_CHANNEL</strong> = 2<br>
+<strong>CA_OP_GET</strong> = 0<br>
+<strong>CA_OP_OTHER</strong> = 5<br>
+<strong>CA_OP_PUT</strong> = 1<br>
+<strong>DBE_ALARM</strong> = 4<br>
+<strong>DBE_LOG</strong> = 2<br>
+<strong>DBE_VALUE</strong> = 1<br>
+<strong>ECA_16KARRAYCLIENT</strong> = 464<br>
+<strong>ECA_ADDFAIL</strong> = 168<br>
+<strong>ECA_ALLOCMEM</strong> = 48<br>
+<strong>ECA_ANACHRONISM</strong> = 386<br>
+<strong>ECA_BADCHID</strong> = 410<br>
+<strong>ECA_BADCOUNT</strong> = 176<br>
+<strong>ECA_BADFUNCPTR</strong> = 418<br>
+<strong>ECA_BADMASK</strong> = 330<br>
+<strong>ECA_BADMONID</strong> = 242<br>
+<strong>ECA_BADPRIORITY</strong> = 450<br>
+<strong>ECA_BADSTR</strong> = 186<br>
+<strong>ECA_BADSYNCGRP</strong> = 354<br>
+<strong>ECA_BADTYPE</strong> = 114<br>
+<strong>ECA_BUILDGET</strong> = 216<br>
+<strong>ECA_CHANDESTROY</strong> = 440<br>
+<strong>ECA_CHIDNOTFND</strong> = 123<br>
+<strong>ECA_CHIDRETRY</strong> = 131<br>
+<strong>ECA_CONN</strong> = 40<br>
+<strong>ECA_CONNSEQTMO</strong> = 472<br>
+<strong>ECA_DBLCHNL</strong> = 200<br>
+<strong>ECA_DBLCLFAIL</strong> = 144<br>
+<strong>ECA_DEFUNCT</strong> = 278<br>
+<strong>ECA_DISCONN</strong> = 192<br>
+<strong>ECA_DISCONNCHID</strong> = 106<br>
+<strong>ECA_DLCKREST</strong> = 304<br>
+<strong>ECA_EMPTYSTR</strong> = 280<br>
+<strong>ECA_EVDISALLOW</strong> = 210<br>
+<strong>ECA_GETFAIL</strong> = 152<br>
+<strong>ECA_INTERNAL</strong> = 142<br>
+<strong>ECA_IODONE</strong> = 339<br>
+<strong>ECA_IOINPROGRESS</strong> = 347<br>
+<strong>ECA_ISATTACHED</strong> = 424<br>
+<strong>ECA_MAXIOC</strong> = 10<br>
+<strong>ECA_NEEDSFP</strong> = 224<br>
+<strong>ECA_NEWADDR</strong> = 248<br>
+<strong>ECA_NEWCONN</strong> = 259<br>
+<strong>ECA_NOCACTX</strong> = 264<br>
+<strong>ECA_NOCAST</strong> = 320<br>
+<strong>ECA_NOCHANMSG</strong> = 296<br>
+<strong>ECA_NOCONVERT</strong> = 400<br>
+<strong>ECA_NORDACCESS</strong> = 368<br>
+<strong>ECA_NOREPEATER</strong> = 288<br>
+<strong>ECA_NORMAL</strong> = 1<br>
+<strong>ECA_NOSEARCHADDR</strong> = 392<br>
+<strong>ECA_NOSUPPORT</strong> = 88<br>
+<strong>ECA_NOTTHREADED</strong> = 458<br>
+<strong>ECA_NOWTACCESS</strong> = 376<br>
+<strong>ECA_OVEVFAIL</strong> = 232<br>
+<strong>ECA_PUTCBINPROG</strong> = 362<br>
+<strong>ECA_PUTFAIL</strong> = 160<br>
+<strong>ECA_SERVBEHIND</strong> = 312<br>
+<strong>ECA_SOCK</strong> = 34<br>
+<strong>ECA_STRTOBIG</strong> = 96<br>
+<strong>ECA_TIMEOUT</strong> = 80<br>
+<strong>ECA_TOLARGE</strong> = 72<br>
+<strong>ECA_UKNCHAN</strong> = 56<br>
+<strong>ECA_UKNFIELD</strong> = 64<br>
+<strong>ECA_UKNHOST</strong> = 18<br>
+<strong>ECA_UKNSERV</strong> = 26<br>
+<strong>ECA_UNAVAILINSERV</strong> = 432<br>
+<strong>ECA_UNRESPTMO</strong> = 480<br>
+<strong>TYPENOTCONN</strong> = -1<br>
+<strong>ca_add_exception_event</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_add_fd_registration</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_array_get_callback</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_array_put</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_array_put_callback</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_attach_context</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_clear_channel</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_clear_subscription</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_context_create</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_context_destroy</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_create_channel</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_create_subscription</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_current_context</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_element_count</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_field_type</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_flush_io</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_message</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_name</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_pend_event</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_puser</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>ca_state</strong> = &lt;_FuncPtr object&gt;<br>
+<strong>cs_closed</strong> = 3<br>
+<strong>cs_conn</strong> = 2<br>
+<strong>cs_never_conn</strong> = 0<br>
+<strong>cs_prev_conn</strong> = 1<br>
+<strong>libca</strong> = &lt;CDLL '/dls_sw/epics/R3.14.8.2/base/lib/linux-x86/libca.so', handle 882ca90 at b7ceae6c&gt;</td></tr></table>
+</body></html>

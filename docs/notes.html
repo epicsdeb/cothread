@@ -1,0 +1,402 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 8.2.6" />
+<style type="text/css">
+/* Debug borders */
+p, li, dt, dd, div, pre, h1, h2, h3, h4, h5, h6 {
+/*
+  border: 1px solid red;
+*/
+}
+
+body {
+  margin: 1em 5% 1em 5%;
+}
+
+a {
+  color: blue;
+  text-decoration: underline;
+}
+a:visited {
+  color: fuchsia;
+}
+
+em {
+  font-style: italic;
+  color: navy;
+}
+
+strong {
+  font-weight: bold;
+  color: #083194;
+}
+
+tt {
+  color: navy;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #527bbd;
+  font-family: sans-serif;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+h1, h2, h3 {
+  border-bottom: 2px solid silver;
+}
+h2 {
+  padding-top: 0.5em;
+}
+h3 {
+  float: left;
+}
+h3 + * {
+  clear: left;
+}
+
+div.sectionbody {
+  font-family: serif;
+  margin-left: 0;
+}
+
+hr {
+  border: 1px solid silver;
+}
+
+p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+ul, ol, li > p {
+  margin-top: 0;
+}
+
+pre {
+  padding: 0;
+  margin: 0;
+}
+
+span#author {
+  color: #527bbd;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+span#email {
+}
+span#revision {
+  font-family: sans-serif;
+}
+
+div#footer {
+  font-family: sans-serif;
+  font-size: small;
+  border-top: 2px solid silver;
+  padding-top: 0.5em;
+  margin-top: 4.0em;
+}
+div#footer-text {
+  float: left;
+  padding-bottom: 0.5em;
+}
+div#footer-badges {
+  float: right;
+  padding-bottom: 0.5em;
+}
+
+div#preamble,
+div.tableblock, div.imageblock, div.exampleblock, div.verseblock,
+div.quoteblock, div.literalblock, div.listingblock, div.sidebarblock,
+div.admonitionblock {
+  margin-right: 10%;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.5em;
+  margin-bottom: 2.5em;
+}
+
+div.content { /* Block element content. */
+  padding: 0;
+}
+
+/* Block element titles. */
+div.title, caption.title {
+  color: #527bbd;
+  font-family: sans-serif;
+  font-weight: bold;
+  text-align: left;
+  margin-top: 1.0em;
+  margin-bottom: 0.5em;
+}
+div.title + * {
+  margin-top: 0;
+}
+
+td div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content + div.title {
+  margin-top: 0.0em;
+}
+
+div.sidebarblock > div.content {
+  background: #ffffee;
+  border: 1px solid silver;
+  padding: 0.5em;
+}
+
+div.listingblock {
+  margin-right: 0%;
+}
+div.listingblock > div.content {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  padding: 0.5em;
+}
+
+div.quoteblock > div.content {
+  padding-left: 2.0em;
+}
+
+div.attribution {
+  text-align: right;
+}
+div.verseblock + div.attribution {
+  text-align: left;
+}
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 2px solid silver;
+}
+
+div.exampleblock > div.content {
+  border-left: 2px solid silver;
+  padding: 0.5em;
+}
+
+div.verseblock div.content {
+  white-space: pre;
+}
+
+div.imageblock div.content { padding-left: 0; }
+div.imageblock img { border: 1px solid silver; }
+span.image img { border-style: none; }
+
+dl {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+dt {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+  font-style: normal;
+}
+dd > *:first-child {
+  margin-top: 0.1em;
+}
+
+ul, ol {
+    list-style-position: outside;
+}
+div.olist > ol {
+  list-style-type: decimal;
+}
+div.olist2 > ol {
+  list-style-type: lower-alpha;
+}
+
+div.tableblock > table {
+  border: 3px solid #527bbd;
+}
+thead {
+  font-family: sans-serif;
+  font-weight: bold;
+}
+tfoot {
+  font-weight: bold;
+}
+
+div.hlist {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+div.hlist td {
+  padding-bottom: 15px;
+}
+td.hlist1 {
+  vertical-align: top;
+  font-style: normal;
+  padding-right: 0.8em;
+}
+td.hlist2 {
+  vertical-align: top;
+}
+
+@media print {
+  div#footer-badges { display: none; }
+}
+
+div#toctitle {
+  color: #527bbd;
+  font-family: sans-serif;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 1.0em;
+  margin-bottom: 0.1em;
+}
+
+div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+div.toclevel2 {
+  margin-left: 2em;
+  font-size: 0.9em;
+}
+div.toclevel3 {
+  margin-left: 4em;
+  font-size: 0.9em;
+}
+div.toclevel4 {
+  margin-left: 6em;
+  font-size: 0.9em;
+}
+/* Workarounds for IE6's broken and incomplete CSS2. */
+
+div.sidebar-content {
+  background: #ffffee;
+  border: 1px solid silver;
+  padding: 0.5em;
+}
+div.sidebar-title, div.image-title {
+  color: #527bbd;
+  font-family: sans-serif;
+  font-weight: bold;
+  margin-top: 0.0em;
+  margin-bottom: 0.5em;
+}
+
+div.listingblock div.content {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  padding: 0.5em;
+}
+
+div.quoteblock-content {
+  padding-left: 2.0em;
+}
+
+div.exampleblock-content {
+  border-left: 2px solid silver;
+  padding-left: 0.5em;
+}
+
+/* IE6 sets dynamically generated links as visited. */
+div#toc a:visited { color: blue; }
+
+/* Because IE6 child selector is broken. */
+div.olist2 ol {
+  list-style-type: lower-alpha;
+}
+div.olist2 div.olist ol {
+  list-style-type: decimal;
+}
+</style>
+<title>Cothread Architecture Notes</title>
+</head>
+<body>
+<div id="header">
+<h1>Cothread Architecture Notes</h1>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="para"><p>Some notes on key architectural issues in the <tt>cothread</tt> scheduler.</p></div>
+</div>
+</div>
+<h2 id="_coroutine_switching">Coroutine Switching</h2>
+<div class="sectionbody">
+<div class="para"><p>There are precisely 7 calls to <tt>switch</tt> in the <tt>cothread</tt> library, and it's
+crucial that they work together correctly.  These calls are (in order of
+appearance in the code).</p></div>
+<div class="olist"><ol>
+<li>
+<p>
+During scheduler creation (in the <tt>.create</tt> method of <tt>_Scheduler</tt>) we
+create a separate scheduler task and switch to that.  This should be called
+from the main parent task (ie, when it ends, the application terminates).
+</p>
+</li>
+<li>
+<p>
+As soon as the scheduler has been initialised, control is returned to the
+main task.  This is in <tt>.__scheduler</tt>, which carries a top level loop for
+restarting the scheduler.
+</p>
+</li>
+<li>
+<p>
+If the main scheduler loop <tt>.__schedule_loop</tt> raises an exception, control
+is switched to the main parent task with a special <tt>.__WAKEUP_INTERRUPT</tt>
+return code.  The main task will at this point normally be waiting for a
+normal scheduler wake up.
+</p>
+</li>
+<li>
+<p>
+The <tt>.__tick</tt> dispatcher switches to all ready tasks in turn passing a
+wakeup code, either <tt>.__WAKEUP_NORMAL</tt> or <tt>.__WAKEUP_TIMEOUT</tt>.
+</p>
+</li>
+<li>
+<p>
+If <tt>.poll_scheduler</tt> has been called, and thus <tt>.__poll_callback</tt> is set,
+the routine <tt>.__poll_suspend</tt> will switch back to the suspended
+<tt>.poll_scheduler</tt> call.  In this case special polling arguments are passed
+(this should be a list of (descriptor, flags) pairs, together with a timeout),
+and a list of active descriptors should be returned.
+</p>
+</li>
+<li>
+<p>
+<tt>.poll_scheduler</tt> defines the other side of this switch: a list of ready
+descriptors is passed in a switch to the scheduler task, and the polling
+arguments described above are returned from the <tt>.poll_scheduler</tt> call &#8212;
+unless a <tt>.__WAKEUP_INTERRUPT</tt> switch has occurred!
+</p>
+</li>
+<li>
+<p>
+The normal place where control is switched to the scheduler is in the middle
+of <tt>.wait_until</tt>.  We have to pass an empty list (to be compatible with the
+<tt>.poll_scheduler</tt> switch), and a wakeup reason should be returned.
+</p>
+</li>
+</ol></div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2009-07-10 11:38:23 BST
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,281 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module cothread.catools</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong><a href="cothread.html"><font color="#ffffff">cothread</font></a>.catools</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/dls_sw/prod/common/python/cothread/1-14/cothread/catools.py">/dls_sw/prod/common/python/cothread/1-14/cothread/catools.py</a></font></td></tr></table>
+    <p><tt>Pure&nbsp;Python&nbsp;ctypes&nbsp;interface&nbsp;to&nbsp;EPICS&nbsp;libca&nbsp;Channel&nbsp;Access&nbsp;library<br>
+&nbsp;<br>
+Supports&nbsp;the&nbsp;following&nbsp;methods:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#-caget">caget</a>(pvs,&nbsp;...)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Returns&nbsp;a&nbsp;single&nbsp;snapshot&nbsp;of&nbsp;the&nbsp;current&nbsp;value&nbsp;of&nbsp;each&nbsp;PV.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#-caput">caput</a>(pvs,&nbsp;values,&nbsp;...)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Writes&nbsp;values&nbsp;to&nbsp;one&nbsp;or&nbsp;more&nbsp;PVs.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#-camonitor">camonitor</a>(pvs,&nbsp;callback,&nbsp;...)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Receive&nbsp;notification&nbsp;each&nbsp;time&nbsp;any&nbsp;of&nbsp;the&nbsp;listed&nbsp;PVs&nbsp;changes.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#-connect">connect</a>(pvs,&nbsp;...)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Can&nbsp;be&nbsp;used&nbsp;to&nbsp;establish&nbsp;PV&nbsp;connection&nbsp;before&nbsp;using&nbsp;the&nbsp;PV.<br>
+&nbsp;<br>
+See&nbsp;the&nbsp;documentation&nbsp;for&nbsp;the&nbsp;individual&nbsp;functions&nbsp;for&nbsp;more&nbsp;details&nbsp;on&nbsp;using<br>
+them.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#fffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="atexit.html">atexit</a><br>
+<a href="cothread.cothread.html">cothread.cothread</a><br>
+</td><td width="25%" valign=top><a href="ctypes.html">ctypes</a><br>
+<a href="sys.html">sys</a><br>
+</td><td width="25%" valign=top><a href="traceback.html">traceback</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-caget"><strong>caget</strong></a>(pvs, **kargs)</dt><dd><tt><a href="#-caget">caget</a>(pvs,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;timeout&nbsp;=&nbsp;5,&nbsp;datatype&nbsp;=&nbsp;None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;format&nbsp;=&nbsp;FORMAT_RAW,&nbsp;count&nbsp;=&nbsp;0,&nbsp;throw&nbsp;=&nbsp;True)<br>
+&nbsp;<br>
+Retrieves&nbsp;the&nbsp;value&nbsp;from&nbsp;one&nbsp;or&nbsp;more&nbsp;PVs.&nbsp;&nbsp;If&nbsp;a&nbsp;single&nbsp;PV&nbsp;is&nbsp;given&nbsp;then<br>
+a&nbsp;single&nbsp;value&nbsp;is&nbsp;returned,&nbsp;otherwise&nbsp;a&nbsp;list&nbsp;of&nbsp;values&nbsp;is&nbsp;returned.<br>
+&nbsp;<br>
+Every&nbsp;value&nbsp;returned&nbsp;has&nbsp;the&nbsp;following&nbsp;fields:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;.ok&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;to&nbsp;True&nbsp;if&nbsp;the&nbsp;data&nbsp;is&nbsp;good,&nbsp;False&nbsp;if&nbsp;there&nbsp;was&nbsp;an&nbsp;error<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(and&nbsp;throw=False&nbsp;has&nbsp;been&nbsp;selected).<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;.name&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;pv.<br>
+&nbsp;<br>
+If&nbsp;ok&nbsp;is&nbsp;False&nbsp;then&nbsp;the&nbsp;.errorcode&nbsp;field&nbsp;is&nbsp;set&nbsp;to&nbsp;the&nbsp;appropriate&nbsp;ECA_<br>
+error&nbsp;code&nbsp;and&nbsp;str(value)&nbsp;will&nbsp;return&nbsp;an&nbsp;appropriate&nbsp;error&nbsp;message.<br>
+&nbsp;<br>
+The&nbsp;various&nbsp;arguments&nbsp;control&nbsp;the&nbsp;behaviour&nbsp;of&nbsp;caget&nbsp;as&nbsp;follows:<br>
+&nbsp;<br>
+timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Timeout&nbsp;for&nbsp;the&nbsp;caget&nbsp;operation.&nbsp;&nbsp;This&nbsp;can&nbsp;be&nbsp;a&nbsp;timeout&nbsp;interval<br>
+&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;seconds,&nbsp;an&nbsp;absolute&nbsp;deadline&nbsp;(in&nbsp;time()&nbsp;format)&nbsp;as&nbsp;a&nbsp;single<br>
+&nbsp;&nbsp;&nbsp;&nbsp;element&nbsp;tuple,&nbsp;or&nbsp;None&nbsp;to&nbsp;specify&nbsp;that&nbsp;no&nbsp;timeout&nbsp;will&nbsp;occur.&nbsp;&nbsp;Note<br>
+&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;a&nbsp;timeout&nbsp;of&nbsp;0&nbsp;will&nbsp;timeout&nbsp;immediately&nbsp;if&nbsp;any&nbsp;waiting&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;required.<br>
+&nbsp;<br>
+datatype<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;controls&nbsp;the&nbsp;format&nbsp;of&nbsp;the&nbsp;data&nbsp;that&nbsp;will&nbsp;be&nbsp;requested.&nbsp;&nbsp;This<br>
+&nbsp;&nbsp;&nbsp;&nbsp;can&nbsp;be&nbsp;any&nbsp;of&nbsp;the&nbsp;following:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;&nbsp;None&nbsp;(the&nbsp;default).&nbsp;&nbsp;In&nbsp;this&nbsp;case&nbsp;the&nbsp;"native"&nbsp;datatype&nbsp;provided<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;by&nbsp;the&nbsp;channel&nbsp;will&nbsp;be&nbsp;returned.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;&nbsp;A&nbsp;DBR_&nbsp;value,&nbsp;one&nbsp;of&nbsp;DBR_STRING,&nbsp;DBR_SHORT,&nbsp;DBR_FLOAT,&nbsp;DBR_ENUM,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DBR_CHAR,&nbsp;DBR_LONG&nbsp;or&nbsp;DBR_DOUBLE.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;&nbsp;A&nbsp;python&nbsp;type&nbsp;compatible&nbsp;with&nbsp;any&nbsp;of&nbsp;the&nbsp;above&nbsp;values,&nbsp;such&nbsp;as<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int,&nbsp;float&nbsp;or&nbsp;str.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;4.&nbsp;&nbsp;Any&nbsp;numpy&nbsp;dtype&nbsp;compatible&nbsp;with&nbsp;any&nbsp;of&nbsp;the&nbsp;above&nbsp;values.<br>
+&nbsp;<br>
+format<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;controls&nbsp;how&nbsp;much&nbsp;auxilliary&nbsp;information&nbsp;will&nbsp;be&nbsp;returned&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;retrieved&nbsp;data,&nbsp;and&nbsp;can&nbsp;be&nbsp;one&nbsp;of&nbsp;the&nbsp;following:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;FORMAT_RAW<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;data&nbsp;is&nbsp;returned&nbsp;unaugmented&nbsp;except&nbsp;for&nbsp;the&nbsp;.name&nbsp;field.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;FORMAT_TIME<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;data&nbsp;is&nbsp;augmented&nbsp;by&nbsp;the&nbsp;data&nbsp;timestamp&nbsp;together&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.alarm&nbsp;.status&nbsp;and&nbsp;.severity&nbsp;fields.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;FORMAT_CTRL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;data&nbsp;is&nbsp;augmented&nbsp;by&nbsp;channel&nbsp;access&nbsp;"control"&nbsp;fields.&nbsp;&nbsp;This<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set&nbsp;of&nbsp;fields&nbsp;depends&nbsp;on&nbsp;the&nbsp;underlying&nbsp;datatype:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DBR_SHORT,&nbsp;DBR_CHAR,&nbsp;DBR_LONG<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;alarm&nbsp;.status&nbsp;and&nbsp;.severity&nbsp;fields&nbsp;together&nbsp;with&nbsp;.units<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;limit&nbsp;fields:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.upper_disp_limit,&nbsp;.lower_disp_limit,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.upper_alarm_limit,&nbsp;.lower_alarm_limit,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.upper_warning_limit,&nbsp;.lower_warning_limit,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.upper_ctrl_limit,&nbsp;.lower_ctrl_limit.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DBR_FLOAT,&nbsp;DBR_DOUBLE<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;As&nbsp;above&nbsp;together&nbsp;with&nbsp;a&nbsp;.precision&nbsp;field.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DBR_ENUM<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Alarm&nbsp;.status&nbsp;and&nbsp;.severity&nbsp;fields&nbsp;together&nbsp;with&nbsp;.enums,&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;list&nbsp;of&nbsp;possible&nbsp;enumeration&nbsp;strings.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DBR_STRING<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_CTRL&nbsp;format&nbsp;is&nbsp;not&nbsp;supported&nbsp;for&nbsp;this&nbsp;field&nbsp;type,&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FORMAT_TIME&nbsp;data&nbsp;is&nbsp;returned&nbsp;instead.<br>
+&nbsp;<br>
+count<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;specified&nbsp;this&nbsp;can&nbsp;be&nbsp;used&nbsp;to&nbsp;limit&nbsp;the&nbsp;number&nbsp;of&nbsp;waveform&nbsp;values<br>
+&nbsp;&nbsp;&nbsp;&nbsp;retrieved&nbsp;from&nbsp;the&nbsp;server.<br>
+&nbsp;<br>
+throw<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Normally&nbsp;an&nbsp;exception&nbsp;will&nbsp;be&nbsp;raised&nbsp;if&nbsp;the&nbsp;channel&nbsp;cannot&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;connected&nbsp;to&nbsp;or&nbsp;if&nbsp;there&nbsp;is&nbsp;a&nbsp;data&nbsp;error.&nbsp;&nbsp;If&nbsp;this&nbsp;is&nbsp;set&nbsp;to&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;instead&nbsp;for&nbsp;each&nbsp;failing&nbsp;PV&nbsp;an&nbsp;empty&nbsp;value&nbsp;with&nbsp;.ok&nbsp;==&nbsp;False&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;returned.<br>
+&nbsp;<br>
+The&nbsp;format&nbsp;of&nbsp;values&nbsp;returned&nbsp;depends&nbsp;on&nbsp;the&nbsp;number&nbsp;of&nbsp;values&nbsp;requested<br>
+for&nbsp;each&nbsp;PV.&nbsp;&nbsp;If&nbsp;only&nbsp;one&nbsp;value&nbsp;is&nbsp;requested&nbsp;then&nbsp;the&nbsp;value&nbsp;is&nbsp;returned<br>
+as&nbsp;a&nbsp;scalar,&nbsp;otherwise&nbsp;as&nbsp;a&nbsp;numpy&nbsp;array.</tt></dd></dl>
+ <dl><dt><a name="-camonitor"><strong>camonitor</strong></a>(pvs, callback, **kargs)</dt><dd><tt><a href="#-camonitor">camonitor</a>(pvs,&nbsp;callback,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;events&nbsp;=&nbsp;DBE_VALUE,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;datatype&nbsp;=&nbsp;None,&nbsp;format&nbsp;=&nbsp;FORMAT_RAW,&nbsp;count&nbsp;=&nbsp;0,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;all_updates&nbsp;=&nbsp;False,&nbsp;notify_disconnect&nbsp;=&nbsp;False)<br>
+&nbsp;<br>
+Creates&nbsp;a&nbsp;subscription&nbsp;to&nbsp;one&nbsp;or&nbsp;more&nbsp;PVs,&nbsp;returning&nbsp;a&nbsp;subscription<br>
+object&nbsp;for&nbsp;each&nbsp;PV.&nbsp;&nbsp;If&nbsp;a&nbsp;single&nbsp;PV&nbsp;is&nbsp;given&nbsp;then&nbsp;a&nbsp;single&nbsp;subscription<br>
+object&nbsp;is&nbsp;returned,&nbsp;otherwise&nbsp;a&nbsp;list&nbsp;of&nbsp;subscriptions&nbsp;is&nbsp;returned.<br>
+&nbsp;<br>
+Subscriptions&nbsp;will&nbsp;remain&nbsp;active&nbsp;until&nbsp;the&nbsp;close()&nbsp;method&nbsp;is&nbsp;called&nbsp;on<br>
+the&nbsp;returned&nbsp;subscription&nbsp;object.<br>
+&nbsp;<br>
+The&nbsp;precise&nbsp;way&nbsp;in&nbsp;which&nbsp;the&nbsp;callback&nbsp;routine&nbsp;is&nbsp;called&nbsp;on&nbsp;updates<br>
+depends&nbsp;on&nbsp;whether&nbsp;pvs&nbsp;is&nbsp;a&nbsp;single&nbsp;name&nbsp;or&nbsp;a&nbsp;list&nbsp;of&nbsp;names.&nbsp;&nbsp;If&nbsp;it&nbsp;is<br>
+single&nbsp;name&nbsp;then&nbsp;it&nbsp;is&nbsp;called&nbsp;as<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;callback(value)<br>
+&nbsp;<br>
+for&nbsp;each&nbsp;update.&nbsp;&nbsp;If&nbsp;pvs&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;names&nbsp;then&nbsp;each&nbsp;update&nbsp;is<br>
+reported&nbsp;as<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;callback(value,&nbsp;index)<br>
+&nbsp;<br>
+where&nbsp;index&nbsp;is&nbsp;the&nbsp;position&nbsp;in&nbsp;the&nbsp;original&nbsp;array&nbsp;of&nbsp;pvs&nbsp;of&nbsp;the&nbsp;name<br>
+generating&nbsp;this&nbsp;update.<br>
+&nbsp;<br>
+Every&nbsp;value&nbsp;has&nbsp;.name&nbsp;and&nbsp;.ok&nbsp;fields:&nbsp;if&nbsp;the&nbsp;channel&nbsp;has&nbsp;disconnected<br>
+then&nbsp;.ok&nbsp;will&nbsp;be&nbsp;False,&nbsp;otherwise&nbsp;the&nbsp;value&nbsp;is&nbsp;an&nbsp;augmented<br>
+representation&nbsp;of&nbsp;the&nbsp;updated&nbsp;value;&nbsp;for&nbsp;more&nbsp;detail&nbsp;on&nbsp;values&nbsp;see&nbsp;the<br>
+documentation&nbsp;for&nbsp;caget.<br>
+&nbsp;<br>
+The&nbsp;parameters&nbsp;modify&nbsp;the&nbsp;behaviour&nbsp;as&nbsp;follows:<br>
+&nbsp;<br>
+events<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;identifies&nbsp;the&nbsp;type&nbsp;of&nbsp;update&nbsp;which&nbsp;will&nbsp;be&nbsp;notified.&nbsp;&nbsp;A<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bit-wise&nbsp;or&nbsp;of&nbsp;any&nbsp;the&nbsp;following&nbsp;are&nbsp;possible:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DBE_VALUE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Notify&nbsp;normal&nbsp;value&nbsp;changes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DBE_LOG&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Notify&nbsp;archive&nbsp;value&nbsp;changes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;DBE_ALARM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Notify&nbsp;alarm&nbsp;state&nbsp;changes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+datatype<br>
+format<br>
+count<br>
+&nbsp;&nbsp;&nbsp;&nbsp;These&nbsp;all&nbsp;specify&nbsp;the&nbsp;format&nbsp;in&nbsp;which&nbsp;data&nbsp;is&nbsp;returned.&nbsp;&nbsp;See&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;documentation&nbsp;for&nbsp;caget&nbsp;for&nbsp;details.<br>
+&nbsp;<br>
+all_updates<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;this&nbsp;is&nbsp;True&nbsp;then&nbsp;every&nbsp;update&nbsp;received&nbsp;from&nbsp;channel&nbsp;access&nbsp;will<br>
+&nbsp;&nbsp;&nbsp;&nbsp;be&nbsp;delivered&nbsp;to&nbsp;the&nbsp;callback,&nbsp;otherwise&nbsp;multiple&nbsp;updates&nbsp;received<br>
+&nbsp;&nbsp;&nbsp;&nbsp;between&nbsp;callback&nbsp;queue&nbsp;dispatches&nbsp;will&nbsp;be&nbsp;merged&nbsp;into&nbsp;the&nbsp;most&nbsp;recent<br>
+&nbsp;&nbsp;&nbsp;&nbsp;value.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;updates&nbsp;are&nbsp;being&nbsp;merged&nbsp;then&nbsp;the&nbsp;value&nbsp;returned&nbsp;will&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;augmented&nbsp;with&nbsp;a&nbsp;field&nbsp;.update_count&nbsp;recording&nbsp;how&nbsp;many&nbsp;updates<br>
+&nbsp;&nbsp;&nbsp;&nbsp;occurred&nbsp;on&nbsp;this&nbsp;value.<br>
+&nbsp;<br>
+notify_disconnect<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;this&nbsp;is&nbsp;True&nbsp;then&nbsp;IOC&nbsp;disconnect&nbsp;events&nbsp;will&nbsp;be&nbsp;reported&nbsp;by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;calling&nbsp;the&nbsp;callback&nbsp;with&nbsp;a&nbsp;ca_nothing&nbsp;error&nbsp;with&nbsp;.ok&nbsp;False,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;otherwise&nbsp;only&nbsp;valid&nbsp;values&nbsp;will&nbsp;be&nbsp;passed&nbsp;to&nbsp;the&nbsp;callback&nbsp;routine.</tt></dd></dl>
+ <dl><dt><a name="-caput"><strong>caput</strong></a>(pvs, values, **kargs)</dt><dd><tt><a href="#-caput">caput</a>(pvs,&nbsp;values,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;repeat_value&nbsp;=&nbsp;False,&nbsp;timeout&nbsp;=&nbsp;5,&nbsp;wait&nbsp;=&nbsp;False,&nbsp;throw&nbsp;=&nbsp;True)<br>
+&nbsp;<br>
+Writes&nbsp;values&nbsp;to&nbsp;one&nbsp;or&nbsp;more&nbsp;PVs.&nbsp;&nbsp;If&nbsp;multiple&nbsp;PVs&nbsp;are&nbsp;given&nbsp;together<br>
+with&nbsp;multiple&nbsp;values&nbsp;then&nbsp;both&nbsp;lists&nbsp;or&nbsp;arrays&nbsp;should&nbsp;match&nbsp;in&nbsp;length,<br>
+and&nbsp;values[i]&nbsp;is&nbsp;written&nbsp;to&nbsp;pvs[i].&nbsp;&nbsp;Otherwise,&nbsp;if&nbsp;a&nbsp;single&nbsp;value&nbsp;is<br>
+given&nbsp;or&nbsp;if&nbsp;repeat_value=True&nbsp;is&nbsp;specified,&nbsp;the&nbsp;same&nbsp;value&nbsp;is&nbsp;written<br>
+to&nbsp;all&nbsp;PVs.<br>
+&nbsp;<br>
+The&nbsp;arguments&nbsp;control&nbsp;the&nbsp;behavour&nbsp;of&nbsp;caput&nbsp;as&nbsp;follows:<br>
+&nbsp;<br>
+repeat_value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;When&nbsp;writing&nbsp;an&nbsp;array&nbsp;value&nbsp;to&nbsp;an&nbsp;array&nbsp;of&nbsp;PVs&nbsp;ensures&nbsp;that&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;same&nbsp;array&nbsp;of&nbsp;values&nbsp;is&nbsp;written&nbsp;to&nbsp;each&nbsp;PV.<br>
+&nbsp;<br>
+timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Timeout&nbsp;for&nbsp;the&nbsp;caput&nbsp;operation.&nbsp;&nbsp;This&nbsp;can&nbsp;be&nbsp;a&nbsp;timeout&nbsp;interval<br>
+&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;seconds,&nbsp;an&nbsp;absolute&nbsp;deadline&nbsp;(in&nbsp;time()&nbsp;format)&nbsp;as&nbsp;a&nbsp;single<br>
+&nbsp;&nbsp;&nbsp;&nbsp;element&nbsp;tuple,&nbsp;or&nbsp;None&nbsp;to&nbsp;specify&nbsp;that&nbsp;no&nbsp;timeout&nbsp;will&nbsp;occur.&nbsp;&nbsp;Note<br>
+&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;a&nbsp;timeout&nbsp;of&nbsp;0&nbsp;will&nbsp;timeout&nbsp;immediately&nbsp;if&nbsp;any&nbsp;waiting&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;required.<br>
+&nbsp;<br>
+wait<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;wait=True&nbsp;is&nbsp;specified&nbsp;then&nbsp;channel&nbsp;access&nbsp;put&nbsp;with&nbsp;callback&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;invoked,&nbsp;and&nbsp;the&nbsp;caput&nbsp;operation&nbsp;will&nbsp;wait&nbsp;until&nbsp;the&nbsp;server<br>
+&nbsp;&nbsp;&nbsp;&nbsp;acknowledges&nbsp;successful&nbsp;completion&nbsp;before&nbsp;returning.<br>
+&nbsp;<br>
+throw<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Normally&nbsp;an&nbsp;exception&nbsp;will&nbsp;be&nbsp;raised&nbsp;if&nbsp;the&nbsp;channel&nbsp;cannot&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;connected&nbsp;to&nbsp;or&nbsp;if&nbsp;an&nbsp;error&nbsp;is&nbsp;reported.&nbsp;&nbsp;If&nbsp;this&nbsp;is&nbsp;set&nbsp;to&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;then&nbsp;instead&nbsp;for&nbsp;each&nbsp;failing&nbsp;PV&nbsp;a&nbsp;sentinel&nbsp;value&nbsp;with&nbsp;.ok&nbsp;==&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;returned.<br>
+&nbsp;<br>
+The&nbsp;return&nbsp;value&nbsp;for&nbsp;each&nbsp;PV&nbsp;is&nbsp;a&nbsp;structure&nbsp;with&nbsp;two&nbsp;fields:&nbsp;.ok&nbsp;and<br>
+.name,&nbsp;and&nbsp;possibly&nbsp;a&nbsp;third&nbsp;field&nbsp;.errorcode.&nbsp;&nbsp;If&nbsp;multiple&nbsp;PVs&nbsp;are<br>
+specified&nbsp;then&nbsp;a&nbsp;list&nbsp;of&nbsp;values&nbsp;is&nbsp;returned.<br>
+&nbsp;<br>
+If&nbsp;caput&nbsp;completed&nbsp;succesfully&nbsp;then&nbsp;.ok&nbsp;is&nbsp;True&nbsp;and&nbsp;.name&nbsp;is&nbsp;the<br>
+corresponding&nbsp;PV&nbsp;name.&nbsp;&nbsp;If&nbsp;throw=False&nbsp;was&nbsp;specified&nbsp;and&nbsp;a&nbsp;put&nbsp;failed<br>
+then&nbsp;.errorcode&nbsp;is&nbsp;set&nbsp;to&nbsp;the&nbsp;appropriate&nbsp;ECA_&nbsp;error&nbsp;code.</tt></dd></dl>
+ <dl><dt><a name="-connect"><strong>connect</strong></a>(pvs, **kargs)</dt><dd><tt><a href="#-connect">connect</a>(pvs,&nbsp;wait&nbsp;=&nbsp;True,&nbsp;timeout&nbsp;=&nbsp;5,&nbsp;throw&nbsp;=&nbsp;True)<br>
+&nbsp;<br>
+Establishes&nbsp;a&nbsp;connection&nbsp;to&nbsp;one&nbsp;or&nbsp;more&nbsp;PVs.&nbsp;&nbsp;A&nbsp;single&nbsp;PV&nbsp;or&nbsp;a&nbsp;list&nbsp;of&nbsp;PVs<br>
+can&nbsp;be&nbsp;given.&nbsp;&nbsp;This&nbsp;does&nbsp;not&nbsp;normally&nbsp;need&nbsp;to&nbsp;be&nbsp;called,&nbsp;as&nbsp;the&nbsp;ca...()<br>
+routines&nbsp;will&nbsp;establish&nbsp;their&nbsp;own&nbsp;connections&nbsp;as&nbsp;required,&nbsp;but&nbsp;after&nbsp;a<br>
+successful&nbsp;connection&nbsp;we&nbsp;can&nbsp;guarantee&nbsp;that&nbsp;<a href="#-caput">caput</a>(...,&nbsp;wait=False)&nbsp;will<br>
+complete&nbsp;immediately&nbsp;without&nbsp;suspension.<br>
+&nbsp;<br>
+The&nbsp;following&nbsp;arguments&nbsp;affect&nbsp;the&nbsp;behaviour&nbsp;of&nbsp;connect&nbsp;as&nbsp;follows:<br>
+&nbsp;<br>
+wait<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Normally&nbsp;the&nbsp;connect&nbsp;routine&nbsp;will&nbsp;not&nbsp;return&nbsp;until&nbsp;the&nbsp;requested<br>
+&nbsp;&nbsp;&nbsp;&nbsp;connection&nbsp;is&nbsp;established.&nbsp;&nbsp;If&nbsp;wait=False&nbsp;is&nbsp;set&nbsp;then&nbsp;a&nbsp;connection<br>
+&nbsp;&nbsp;&nbsp;&nbsp;request&nbsp;will&nbsp;be&nbsp;queued&nbsp;and&nbsp;connect&nbsp;will&nbsp;unconditionally&nbsp;succeed.<br>
+&nbsp;<br>
+timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;How&nbsp;long&nbsp;to&nbsp;wait&nbsp;for&nbsp;the&nbsp;connection&nbsp;to&nbsp;be&nbsp;established.<br>
+&nbsp;<br>
+throw<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Normally&nbsp;an&nbsp;exception&nbsp;will&nbsp;be&nbsp;raised&nbsp;if&nbsp;the&nbsp;channel&nbsp;cannot&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;connected&nbsp;to.&nbsp;&nbsp;If&nbsp;this&nbsp;is&nbsp;set&nbsp;to&nbsp;False&nbsp;then&nbsp;instead&nbsp;for&nbsp;each&nbsp;failing<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PV&nbsp;a&nbsp;sentinel&nbsp;value&nbsp;with&nbsp;.ok&nbsp;==&nbsp;False&nbsp;is&nbsp;returned.</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>DBE_ALARM</strong> = 4<br>
+<strong>DBE_LOG</strong> = 2<br>
+<strong>DBE_VALUE</strong> = 1<br>
+<strong>DBR_CHAR</strong> = 4<br>
+<strong>DBR_DOUBLE</strong> = 6<br>
+<strong>DBR_ENUM</strong> = 3<br>
+<strong>DBR_FLOAT</strong> = 2<br>
+<strong>DBR_LONG</strong> = 5<br>
+<strong>DBR_SHORT</strong> = 1<br>
+<strong>DBR_STRING</strong> = 0<br>
+<strong>FORMAT_CTRL</strong> = 2<br>
+<strong>FORMAT_RAW</strong> = 0<br>
+<strong>FORMAT_TIME</strong> = 1<br>
+<strong>__all__</strong> = ['caput', 'caget', 'camonitor', 'connect', 'DBR_STRING', 'DBR_SHORT', 'DBR_FLOAT', 'DBR_ENUM', 'DBR_CHAR', 'DBR_LONG', 'DBR_DOUBLE', 'FORMAT_RAW', 'FORMAT_TIME', 'FORMAT_CTRL', 'DBE_VALUE', 'DBE_LOG', 'DBE_ALARM', 'ca_extra_fields']<br>
+<strong>ca_extra_fields</strong> = ['name', 'ok', 'severity', 'status', 'raw_stamp', 'timestamp', 'units', 'upper_disp_limit', 'lower_disp_limit', 'upper_alarm_limit', 'lower_alarm_limit', 'upper_warning_limit', 'lower_warning_limit', 'upper_ctrl_limit', 'lower_ctrl_limit', 'precision', 'enums']</td></tr></table>
+</body></html>
