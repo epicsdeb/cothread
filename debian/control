@@ -1,0 +1,29 @@
+Source: cothread
+Section: python
+Priority: optional
+Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
+Build-Depends: cdbs, debhelper (>= 7),
+               python-setuptools, python-codespeak-lib,
+               python-all-dev, python-all-dbg, python-central (>= 0.6)
+XS-Python-Version: >= 2.4
+Standards-Version: 3.8.0
+Homepage: http://controls.diamond.ac.uk/downloads/python/cothread/
+
+Package: python-cothread
+Architecture: any
+Depends: ${shlibs:Depends}, ${python:Depends},
+         python-setuptools, python-numpy,
+         epics-libs (>= 3.14.10), epics-libs (<< 3.14.11)
+XB-Python-Version: ${python:Versions}
+Description: A co-routine implimentation w/ EPICS CA
+ An implimentation of co-routines in Python with
+ a ctypes wrapper for the EPICS libca client library
+
+Package: python-cothread-doc
+Architecture: all
+Depends: python-cothread (= ${source:Version})
+Description: A co-routine implimentation w/ EPICS CA
+ An implimentation of co-routines in Python with
+ a ctypes wrapper for the EPICS libca client library
+ .
+ This package contains documentation and examples

@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+DEB_PYTHON_SYSTEM=pycentral
+PYVERS=$(shell pyversions -vr debian/control)
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/python-distutils.mk
+
+binary-install/python-cothread-doc::
+	cp $(CURDIR)/docs/*.txt $(CURDIR)/debian/$(cdbs_curpkg)/usr/share/doc/$(cdbs_curpkg)/
+	cp $(CURDIR)/docs/*.html $(CURDIR)/debian/$(cdbs_curpkg)/usr/share/doc/$(cdbs_curpkg)/
+	cp -r $(CURDIR)/examples $(CURDIR)/debian/$(cdbs_curpkg)/usr/share/doc/$(cdbs_curpkg)/
+
+clean::
+	rm -rf cothread.egg-info

@@ -1,0 +1,7 @@
+cothread (1.14-1) unstable; urgency=low
+
+  * Initial release 1.14
+  * Patch from upstream to fix cadef ctypes definitions
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Sat, 24 Oct 2009 06:00:22 -0400
+
