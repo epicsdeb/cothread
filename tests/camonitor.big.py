@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/python
 # Simple example of camonitor tool using greenlets etcetera.
 
 import sys

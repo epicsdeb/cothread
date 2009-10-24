@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/python
 # Simple example of caget tool using greenlets etcetera.
 
 import require

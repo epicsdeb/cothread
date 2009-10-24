@@ -1,4 +1,4 @@
-#!/dls_sw/tools/python2.4-debug/bin/python2.4
+#!/usr/bin/python
 
 '''Tests for memory leaks.'''
 
