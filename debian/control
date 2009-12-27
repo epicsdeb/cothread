@@ -10,7 +10,7 @@ Standards-Version: 3.8.0
 Homepage: http://controls.diamond.ac.uk/downloads/python/cothread/
 
 Package: python-cothread
-Architecture: any
+Architecture: all
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
          libepics3.14.10
