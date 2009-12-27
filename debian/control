@@ -15,13 +15,13 @@ Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
          libepics3.14.10
 XB-Python-Version: ${python:Versions}
+Suggests: python-cothread-doc
 Description: A co-routine implimentation w/ EPICS CA
  An implimentation of co-routines in Python with
  a ctypes wrapper for the EPICS libca client library
 
 Package: python-cothread-doc
 Architecture: all
-Depends: python-cothread (= ${source:Version})
 Description: A co-routine implimentation w/ EPICS CA
  An implimentation of co-routines in Python with
  a ctypes wrapper for the EPICS libca client library
