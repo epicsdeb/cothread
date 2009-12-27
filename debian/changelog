@@ -1,3 +1,9 @@
+cothread (1.14-2) unstable; urgency=low
+
+  * Update dependency
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Sun, 27 Dec 2009 17:49:04 -0500
+
 cothread (1.14-1) unstable; urgency=low
 
   * Initial release 1.14

@@ -13,7 +13,7 @@ Package: python-cothread
 Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
-         epics-libs (>= 3.14.10), epics-libs (<< 3.14.11)
+         libepics3.14.10
 XB-Python-Version: ${python:Versions}
 Description: A co-routine implimentation w/ EPICS CA
  An implimentation of co-routines in Python with
