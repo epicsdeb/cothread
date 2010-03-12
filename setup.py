@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+version = '1.15'
+
 from setuptools import setup, Extension
 
 if 'version' not in globals():

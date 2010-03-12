@@ -482,6 +482,7 @@ DBR_CTRL_DOUBLE = 34
 
 DBR_PUT_ACKT = 35       # Configure global alarm acknowledgement
 DBR_PUT_ACKS = 36       # Acknowledge global alarm
+DBR_STSACK_STRING = 37
 DBR_CLASS_NAME = 38
 
 # Special value for DBR_CHAR as str special processing.
@@ -512,6 +513,8 @@ DbrCodeToType = {
     DBR_CTRL_CHAR : dbr_ctrl_char,
     DBR_CTRL_LONG : dbr_ctrl_long,
     DBR_CTRL_DOUBLE : dbr_ctrl_double,
+
+    DBR_STSACK_STRING : dbr_stsack_string,
     DBR_CLASS_NAME : dbr_string,
 }
 
