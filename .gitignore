@@ -1,1 +1,4 @@
-debian/pycompat
+# /.gitignore
+*.pyc
+docs/*.html
+docs/pydoc/
