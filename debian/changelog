@@ -1,3 +1,12 @@
+cothread (1.15-1) unstable; urgency=low
+
+  * New upstream
+  * debian/control - merge python-cothread-doc
+  * debian/rules - switched from cdbs to dh
+  * debian/watch - added
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 12 Mar 2010 11:10:31 -0500
+
 cothread (1.14-2) unstable; urgency=low
 
   * Update dependency

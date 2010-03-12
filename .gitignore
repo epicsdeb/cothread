@@ -2,3 +2,4 @@
 *.pyc
 docs/*.html
 docs/pydoc/
+debian/pycompat

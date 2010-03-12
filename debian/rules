@@ -1,15 +1,49 @@
 #!/usr/bin/make -f
 
+#export DH_VERBOSE=1
+
 DEB_PYTHON_SYSTEM=pycentral
 PYVERS=$(shell pyversions -vr debian/control)
 
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/python-distutils.mk
+build: build-stamp
+build-stamp:
+	dh build --before auto_configure
 
-binary-install/python-cothread-doc::
-	cp $(CURDIR)/docs/*.txt $(CURDIR)/debian/$(cdbs_curpkg)/usr/share/doc/$(cdbs_curpkg)/
-	cp $(CURDIR)/docs/*.html $(CURDIR)/debian/$(cdbs_curpkg)/usr/share/doc/$(cdbs_curpkg)/
-	cp -r $(CURDIR)/examples $(CURDIR)/debian/$(cdbs_curpkg)/usr/share/doc/$(cdbs_curpkg)/
+	python setup.py build --build-base="$(CURDIR)/build"
 
-clean::
+	cd docs && ./makedocs.py
+
+	dh build --after auto_test
+
+	touch $@
+
+clean:
+	rm -rf docs/pydoc
 	rm -rf cothread.egg-info
+	dh clean
+
+install: build install-stamp
+install-stamp:
+	dh install --with python_central --before auto_install
+
+	python setup.py install --root=$(CURDIR)/debian/tmp --no-compile -O0
+
+	install -d debian/tmp/usr/share/doc/python-cothread/html
+
+	cp docs/*.txt debian/tmp/usr/share/doc/python-cothread/
+
+	cp docs/pydoc/*.html debian/tmp/usr/share/doc/python-cothread/html/
+
+	cp -r examples debian/tmp/usr/share/doc/python-cothread/
+
+	dh install --with python_central --after auto_install
+
+	touch install-stamp
+
+binary-arch: #install
+#	dh binary-arch
+
+binary-indep: install
+	dh binary-indep
+
+binary: binary-arch binary-indep
