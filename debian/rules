@@ -11,7 +11,7 @@ build-stamp:
 
 	python setup.py build --build-base="$(CURDIR)/build"
 
-	cd docs && ./makedocs.py
+	cd docs && env PYTHONPATH=$(CURDIR) ./makedocs.py
 
 	dh build --after auto_test
 
