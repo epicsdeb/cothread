@@ -1,5 +1,3 @@
-# The following line was added by the release script
-version = '1.14'
 #!/usr/bin/env python
 
 from setuptools import setup, Extension

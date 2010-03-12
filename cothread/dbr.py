@@ -37,17 +37,29 @@ import time
 
 
 __all__ = [
-    # DBR type request codes.  Only these ones can be used from outside.
-    'DBR_STRING',   'DBR_SHORT',    'DBR_FLOAT',    'DBR_ENUM',
-    'DBR_CHAR',     'DBR_LONG',     'DBR_DOUBLE',
-    # Format types
-    'FORMAT_RAW',   'FORMAT_TIME',  'FORMAT_CTRL',
-    # Published functions
-    'type_to_dbr',  # Convert data type request into DBR datatype
-    'dbr_to_value', # Convert dbr value into user value (array or scalar)
-    'value_to_dbr', # Convert Python value into dbr format
+    # Basic DBR request codes: any one of these can be used as part of a
+    # datatype request.  
+    'DBR_STRING',       # 40 character strings
+    'DBR_SHORT',        # 16 bit signed
+    'DBR_FLOAT',        # 32 bit float
+    'DBR_ENUM',         # 16 bit unsigned
+    'DBR_CHAR',         # 8 bit unsigned
+    'DBR_LONG',         # 32 bit signed
+    'DBR_DOUBLE',       # 64 bit float
 
-    'ca_extra_fields',
+    'DBR_CHAR_STR',     # Long strings as char arrays
+
+    'DBR_PUT_ACKT',     # Configure global alarm acknowledgement
+    'DBR_PUT_ACKS',     # Acknowledge global alarm
+    'DBR_STSACK_STRING', # Returns status ack structure
+    'DBR_CLASS_NAME',   # Returns record type (same as .RTYP?)
+    
+    # Data type format requests
+    'FORMAT_RAW',       # Request the underlying data only
+    'FORMAT_TIME',      # Request alarm status and timestamp
+    'FORMAT_CTRL',      # Request graphic and control fields
+
+    'ca_extra_fields',  # List of all possible augmented field names
 ]
 
 # List of all the field names that can be added to an augmented field.
@@ -144,8 +156,8 @@ EPICS_epoch = int(time.mktime((1990, 1, 1, 0, 0, 0, 0, 0, 0)))
     
 class ca_timestamp(ctypes.Structure):
     _fields_ = [
-        ('secs',                ctypes.c_long),
-        ('nsec',                ctypes.c_long)]
+        ('secs',    ctypes.c_uint32),
+        ('nsec',    ctypes.c_uint32)]
         
         
 # ----------------------------------------------------------------------------
@@ -206,7 +218,7 @@ class dbr_short(ctypes.Structure):
     dtype = numpy.int16
     scalar = ca_int
     copy_attributes = copy_attributes_none
-    _fields_ = [('raw_value', ctypes.c_short * 1)]
+    _fields_ = [('raw_value', ctypes.c_int16 * 1)]
     
 class dbr_float(ctypes.Structure):
     dtype = numpy.float32
@@ -218,19 +230,19 @@ class dbr_enum(ctypes.Structure):
     dtype = numpy.uint16
     scalar = ca_int
     copy_attributes = copy_attributes_none
-    _fields_ = [('raw_value', ctypes.c_ushort * 1)]
+    _fields_ = [('raw_value', ctypes.c_uint16 * 1)]
     
 class dbr_char(ctypes.Structure):
     dtype = numpy.uint8
     scalar = ca_int
     copy_attributes = copy_attributes_none
-    _fields_ = [('raw_value', ctypes.c_byte * 1)]
+    _fields_ = [('raw_value', ctypes.c_uint8 * 1)]
     
 class dbr_long(ctypes.Structure):
     dtype = numpy.int32
     scalar = ca_int
     copy_attributes = copy_attributes_none
-    _fields_ = [('raw_value', ctypes.c_long * 1)]
+    _fields_ = [('raw_value', ctypes.c_int32 * 1)]
     
 class dbr_double(ctypes.Structure):
     dtype = numpy.float64
@@ -245,8 +257,8 @@ class dbr_time_string(ctypes.Structure):
     scalar = ca_str
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
         ('raw_value', (ctypes.c_byte * MAX_STRING_SIZE) * 1)]
 
@@ -255,19 +267,19 @@ class dbr_time_short(ctypes.Structure):
     scalar = ca_int
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
-        ('RISC_pad',  ctypes.c_short),
-        ('raw_value', ctypes.c_short * 1)]
+        ('RISC_pad',  ctypes.c_int16),
+        ('raw_value', ctypes.c_int16 * 1)]
     
 class dbr_time_float(ctypes.Structure):
     dtype = numpy.float32
     scalar = ca_float
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
         ('raw_value', ctypes.c_float * 1)]
     
@@ -276,43 +288,43 @@ class dbr_time_enum(ctypes.Structure):
     scalar = ca_int
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
-        ('RISC_pad',  ctypes.c_short),
-        ('raw_value', ctypes.c_ushort * 1)]
+        ('RISC_pad',  ctypes.c_int16),
+        ('raw_value', ctypes.c_uint16 * 1)]
     
 class dbr_time_char(ctypes.Structure):
     dtype = numpy.uint8
     scalar = ca_int
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
-        ('RISC_pad0', ctypes.c_short),
-        ('RISC_pad1', ctypes.c_byte),
-        ('raw_value', ctypes.c_byte * 1)]
+        ('RISC_pad0', ctypes.c_int16),
+        ('RISC_pad1', ctypes.c_uint8),
+        ('raw_value', ctypes.c_uint8 * 1)]
     
 class dbr_time_long(ctypes.Structure):
     dtype = numpy.int32
     scalar = ca_int
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
-        ('raw_value', ctypes.c_long * 1)]
+        ('raw_value', ctypes.c_int32 * 1)]
     
 class dbr_time_double(ctypes.Structure):
     dtype = numpy.float64
     scalar = ca_float
     copy_attributes = copy_attributes_time
     _fields_ = [
-        ('status',    ctypes.c_short),
-        ('severity',  ctypes.c_short),
+        ('status',    ctypes.c_int16),
+        ('severity',  ctypes.c_int16),
         ('raw_stamp', ca_timestamp),
-        ('RISC_pad',  ctypes.c_long),
+        ('RISC_pad',  ctypes.c_int32),
         ('raw_value', ctypes.c_double * 1)]
 
 # DBR types with full control and graphical fields
@@ -322,28 +334,28 @@ class dbr_ctrl_short(ctypes.Structure):
     scalar = ca_int
     copy_attributes = copy_attributes_ctrl
     _fields_ = [
-        ('status',              ctypes.c_short),
-        ('severity',            ctypes.c_short),
+        ('status',              ctypes.c_int16),
+        ('severity',            ctypes.c_int16),
         ('units',               ctypes.c_char * MAX_UNITS_SIZE),
-        ('upper_disp_limit',    ctypes.c_short),
-        ('lower_disp_limit',    ctypes.c_short),
-        ('upper_alarm_limit',   ctypes.c_short),
-        ('upper_warning_limit', ctypes.c_short),
-        ('lower_warning_limit', ctypes.c_short),
-        ('lower_alarm_limit',   ctypes.c_short),
-        ('upper_ctrl_limit',    ctypes.c_short),
-        ('lower_ctrl_limit',    ctypes.c_short),
-        ('raw_value',           ctypes.c_short * 1)]
+        ('upper_disp_limit',    ctypes.c_int16),
+        ('lower_disp_limit',    ctypes.c_int16),
+        ('upper_alarm_limit',   ctypes.c_int16),
+        ('upper_warning_limit', ctypes.c_int16),
+        ('lower_warning_limit', ctypes.c_int16),
+        ('lower_alarm_limit',   ctypes.c_int16),
+        ('upper_ctrl_limit',    ctypes.c_int16),
+        ('lower_ctrl_limit',    ctypes.c_int16),
+        ('raw_value',           ctypes.c_int16 * 1)]
     
 class dbr_ctrl_float(ctypes.Structure):
     dtype = numpy.float32
     scalar = ca_float
     copy_attributes = copy_attributes_ctrl
     _fields_ = [
-        ('status',              ctypes.c_short),
-        ('severity',            ctypes.c_short),
-        ('precision',           ctypes.c_short),
-        ('RISC_pad',            ctypes.c_short),
+        ('status',              ctypes.c_int16),
+        ('severity',            ctypes.c_int16),
+        ('precision',           ctypes.c_int16),
+        ('RISC_pad',            ctypes.c_int16),
         ('units',               ctypes.c_char * MAX_UNITS_SIZE),
         ('upper_disp_limit',    ctypes.c_float),
         ('lower_disp_limit',    ctypes.c_float),
@@ -359,11 +371,11 @@ class dbr_ctrl_enum(ctypes.Structure):
     dtype = numpy.uint16
     scalar = ca_int
     _fields_ = [
-        ('status',   ctypes.c_short),
-        ('severity', ctypes.c_short),
-        ('no_str',   ctypes.c_short),
+        ('status',   ctypes.c_int16),
+        ('severity', ctypes.c_int16),
+        ('no_str',   ctypes.c_int16),
         ('raw_strs', (ctypes.c_char * MAX_ENUM_STRING_SIZE) * MAX_ENUM_STATES),
-        ('raw_value', ctypes.c_ushort * 1)]
+        ('raw_value', ctypes.c_uint16 * 1)]
     
     def copy_attributes(self, other):
         other.status = self.status
@@ -375,47 +387,47 @@ class dbr_ctrl_char(ctypes.Structure):
     scalar = ca_int
     copy_attributes = copy_attributes_ctrl
     _fields_ = [
-        ('status',              ctypes.c_short),
-        ('severity',            ctypes.c_short),
+        ('status',              ctypes.c_int16),
+        ('severity',            ctypes.c_int16),
         ('units',               ctypes.c_char * MAX_UNITS_SIZE),
-        ('upper_disp_limit',    ctypes.c_byte),
-        ('lower_disp_limit',    ctypes.c_byte),
-        ('upper_alarm_limit',   ctypes.c_byte),
-        ('upper_warning_limit', ctypes.c_byte),
-        ('lower_warning_limit', ctypes.c_byte),
-        ('lower_alarm_limit',   ctypes.c_byte),
-        ('upper_ctrl_limit',    ctypes.c_byte),
-        ('lower_ctrl_limit',    ctypes.c_byte),
-        ('RISC_pad',            ctypes.c_byte),
-        ('raw_value',           ctypes.c_byte * 1)]
+        ('upper_disp_limit',    ctypes.c_uint8),
+        ('lower_disp_limit',    ctypes.c_uint8),
+        ('upper_alarm_limit',   ctypes.c_uint8),
+        ('upper_warning_limit', ctypes.c_uint8),
+        ('lower_warning_limit', ctypes.c_uint8),
+        ('lower_alarm_limit',   ctypes.c_uint8),
+        ('upper_ctrl_limit',    ctypes.c_uint8),
+        ('lower_ctrl_limit',    ctypes.c_uint8),
+        ('RISC_pad',            ctypes.c_uint8),
+        ('raw_value',           ctypes.c_uint8 * 1)]
     
 class dbr_ctrl_long(ctypes.Structure):
     dtype = numpy.int32
     scalar = ca_int
     copy_attributes = copy_attributes_ctrl
     _fields_ = [
-        ('status',              ctypes.c_short),
-        ('severity',            ctypes.c_short),
+        ('status',              ctypes.c_int16),
+        ('severity',            ctypes.c_int16),
         ('units',               ctypes.c_char * MAX_UNITS_SIZE),
-        ('upper_disp_limit',    ctypes.c_long),
-        ('lower_disp_limit',    ctypes.c_long),
-        ('upper_alarm_limit',   ctypes.c_long),
-        ('upper_warning_limit', ctypes.c_long),
-        ('lower_warning_limit', ctypes.c_long),
-        ('lower_alarm_limit',   ctypes.c_long),
-        ('upper_ctrl_limit',    ctypes.c_long),
-        ('lower_ctrl_limit',    ctypes.c_long),
-        ('raw_value',           ctypes.c_long * 1)]
+        ('upper_disp_limit',    ctypes.c_int32),
+        ('lower_disp_limit',    ctypes.c_int32),
+        ('upper_alarm_limit',   ctypes.c_int32),
+        ('upper_warning_limit', ctypes.c_int32),
+        ('lower_warning_limit', ctypes.c_int32),
+        ('lower_alarm_limit',   ctypes.c_int32),
+        ('upper_ctrl_limit',    ctypes.c_int32),
+        ('lower_ctrl_limit',    ctypes.c_int32),
+        ('raw_value',           ctypes.c_int32 * 1)]
     
 class dbr_ctrl_double(ctypes.Structure):
     dtype = numpy.float64
     scalar = ca_float
     copy_attributes = copy_attributes_ctrl
     _fields_ = [
-        ('status',              ctypes.c_short),
-        ('severity',            ctypes.c_short),
-        ('precision',           ctypes.c_short),
-        ('RISC_pad0',           ctypes.c_short),
+        ('status',              ctypes.c_int16),
+        ('severity',            ctypes.c_int16),
+        ('precision',           ctypes.c_int16),
+        ('RISC_pad0',           ctypes.c_int16),
         ('units',               ctypes.c_char * MAX_UNITS_SIZE),
         ('upper_disp_limit',    ctypes.c_double),
         ('lower_disp_limit',    ctypes.c_double),
@@ -427,16 +439,21 @@ class dbr_ctrl_double(ctypes.Structure):
         ('lower_ctrl_limit',    ctypes.c_double),
         ('raw_value',           ctypes.c_double * 1)]
 
-    
-# No idea what this is for, and at the moment we provide no support for it!
-class dbr_stsack_string(ctypes.Structure):
-    _fields_ = [
-        ('status', ctypes.c_ushort),
-        ('severity', ctypes.c_ushort),
-        ('ackt', ctypes.c_ushort),
-        ('acks', ctypes.c_ushort),
-        ('raw_value', ctypes.c_byte * MAX_STRING_SIZE)]
 
+class dbr_stsack_string(ctypes.Structure):
+    dtype = str_dtype
+    scalar = ca_str
+    _fields_ = [
+        ('status',              ctypes.c_int16),
+        ('severity',            ctypes.c_int16),
+        ('ackt',                ctypes.c_int16),
+        ('acks',                ctypes.c_int16),
+        ('raw_value',           (ctypes.c_byte * MAX_STRING_SIZE) * 1)]
+    def copy_attributes(self, other):
+        other.status = self.status
+        other.severity = self.severity
+        other.ackt = self.ackt
+        other.acks = self.acks
 
     
 # DBR request codes.  These correspond precisely to the types above, as
@@ -464,7 +481,13 @@ DBR_CTRL_CHAR = 32
 DBR_CTRL_LONG = 33
 DBR_CTRL_DOUBLE = 34
 
+DBR_PUT_ACKT = 35       # Configure global alarm acknowledgement
+DBR_PUT_ACKS = 36       # Acknowledge global alarm
 DBR_STSACK_STRING = 37
+DBR_CLASS_NAME = 38
+
+# Special value for DBR_CHAR as str special processing.
+DBR_CHAR_STR = 999
 
 
 # Lookup table to convert support DBR type codes into the corresponding DBR
@@ -494,6 +517,7 @@ DbrCodeToType = {
     DBR_CTRL_DOUBLE : dbr_ctrl_double,
 
     DBR_STSACK_STRING : dbr_stsack_string,
+    DBR_CLASS_NAME : dbr_string,
 }
 
 
@@ -510,7 +534,6 @@ NumpyCharCodeToDbr = {
     'b':    DBR_CHAR,       # byte   = int8
     'h':    DBR_SHORT,      # short  = int16
     'i':    DBR_LONG,       # intc   = int32
-    'l':    DBR_LONG,       # int_   = int32
     'f':    DBR_FLOAT,      # single = float32
     'd':    DBR_DOUBLE,     # float_ = float64
     'S':    DBR_STRING,     # str_
@@ -519,17 +542,22 @@ NumpyCharCodeToDbr = {
     # they're related types.
     '?':    DBR_CHAR,       # bool_
     'B':    DBR_CHAR,       # ubyte  = uint8
-    'p':    DBR_LONG,       # intp   = int32
     'H':    DBR_SHORT,      # ushort = uint16
     'I':    DBR_LONG,       # uintc  = uint32
-    'L':    DBR_LONG,       # uint   = uint32
-    'P':    DBR_LONG,       # uintp  = uint32
     
     # The following type codes are not supported at all:
     #   q   longlong        Q   ulonglong       g   longfloat
     #   F   csingle         D   complex_        G   clongfloat
     #   O   object_         U   unicode_        V   void
 }
+
+
+
+# A couple of data types can only be supported on 32-bit platforms
+if numpy.int_().itemsize == 4:
+    NumpyCharCodeToDbr.update({'l': DBR_LONG, 'L': DBR_LONG})   # int_, uint
+if numpy.intp().itemsize == 4:
+    NumpyCharCodeToDbr.update({'p': DBR_LONG, 'P': DBR_LONG})   # intp, uintp
 
 
 # Format codes for type_to_dbr function.
@@ -548,9 +576,20 @@ def _dtype_to_dbr(dtype):
     except:
         raise InvalidDatatype(
             'Datatype "%s" not supported for channel access' % dtype)
-    
 
-def type_to_dbr(datatype, format = FORMAT_RAW):
+def _datatype_to_dtype(datatype):
+    '''Converts a user specified data type into a numpy dtype value.'''
+    if datatype in BasicDbrTypes:
+        return DbrCodeToType[datatype].dtype
+    else:
+        try:
+            return numpy.dtype(datatype)
+        except:
+            raise InvalidDatatype(
+                'Datatype "%s" cannot be used for channel access' % datatype)
+
+
+def type_to_dbr(datatype, format):
     '''Converts a datatype and format request to a dbr value, or raises an
     exception if this cannot be done.
 
@@ -563,6 +602,10 @@ def type_to_dbr(datatype, format = FORMAT_RAW):
       - FORMAT_CTRL: retrieve limit and control data
     '''
     if datatype not in BasicDbrTypes:
+        if datatype == DBR_CHAR_STR:
+            datatype = DBR_CHAR     # Retrieve this type using char array
+        elif datatype in [DBR_STSACK_STRING, DBR_CLASS_NAME]:
+            return datatype         # format is meaningless in this case
         datatype = _dtype_to_dbr(numpy.dtype(datatype))
 
     # Now take account of the format
@@ -584,7 +627,7 @@ def type_to_dbr(datatype, format = FORMAT_RAW):
         raise InvalidDatatype('Format not recognised')
 
 
-def dbr_to_value(raw_dbr, datatype, count, name):
+def dbr_to_value(raw_dbr, datatype, count, name, as_string):
     '''Convert a raw DBR structure into a packaged Python value.  All values
     are returned as augmented types.'''
 
@@ -595,7 +638,13 @@ def dbr_to_value(raw_dbr, datatype, count, name):
     dbr_type = DbrCodeToType[datatype]
     raw_dbr = ctypes.cast(raw_dbr, ctypes.POINTER(dbr_type))[0]
 
-    if count == 1:
+    if as_string and raw_dbr.dtype is numpy.uint8:
+        # Special case hack for long strings returned as DBR_CHAR arrays.
+        # Need string_at() twice to ensure string is size limited *and* null
+        # terminated.
+        result = ca_str(ctypes.string_at(
+            ctypes.string_at(raw_dbr.raw_value, count)))
+    elif count == 1:
         # Single scalar values can be created directly from the raw value
         result = raw_dbr.raw_value[0]
         if dbr_type.dtype is str_dtype:
@@ -603,7 +652,7 @@ def dbr_to_value(raw_dbr, datatype, count, name):
             result = ctypes.string_at(result)
         result = raw_dbr.scalar(result)
     else:
-        # Build a fresh dbr_array to receive a copy of the raw data in the
+        # Build a fresh ca_array to receive a copy of the raw data in the
         # dbr.  We have to take a copy, because the dbr is transient, and it
         # is helpful to use a numpy array as a container, because of the
         # support it provides.
@@ -630,26 +679,56 @@ def dbr_to_value(raw_dbr, datatype, count, name):
     return result
 
 
-def value_to_dbr(value):
+def value_to_dbr(value, datatype):
     '''Takes an ordinary Python value and converts it into a value in dbr
     format suitable for sending to channel access.  Returns the target
-    datatype and the number of elements as well as a pointer to the raw
-    data.'''
+    datatype and the number of elements together with a pointer to the raw
+    data and (for lifetime management) the object containing the data.'''
+
+    if datatype is not None:
+        if datatype == DBR_CHAR_STR:
+            # DBR_CHAR_STR is handled specially: strings are converted to char
+            # arrays.
+            value = str(value)      # Ensure the value to write is a string
+            count = len(value) + 1
+            value = ctypes.create_string_buffer(value)
+            return DBR_CHAR, count, ctypes.byref(value), value
+        elif datatype in [DBR_PUT_ACKT, DBR_PUT_ACKS]:
+            # For DBR_PUT_ACKT and DBR_PUT_ACKS we return an integer
+            value = ctypes.c_int32(value)
+            return datatype, 1, ctypes.byref(value), value
+        else:
+            datatype = _datatype_to_dtype(datatype)
 
     # First convert the data directly into an array.  This will help in
     # subsequent processing: this does most of the type coercion.
-    value = numpy.require(value, requirements = 'C')
+    value = numpy.require(value, requirements = 'C', dtype = datatype)
     if value.shape == ():
         value.shape = (1,)
     assert value.ndim == 1, 'Can\'t put multidimensional arrays!'
 
     if value.dtype.char == 'S' and value.itemsize != MAX_STRING_SIZE:
-        # Need special processing to hack the array so that characters are
+        # Need special processing to hack the array so that strings are
         # actually 40 characters long.
         new_value = numpy.empty(value.shape, str_dtype)
         new_value[:] = value
         value = new_value
 
-    datatype = _dtype_to_dbr(value.dtype)
-    count = len(value)
-    return datatype, count, value
+    try:
+        dbrtype = _dtype_to_dbr(value.dtype)
+    except:
+        # One more special case.  caput() of a list of integers on a 64-bit
+        # system will fail at this point because they were automatically
+        # converted to 64-bit integers.  Catch this special case and fix it
+        # up by silently converting to 32-bit integers.  Not really the right
+        # thing to do (as data can be quietly lost), but the alternative
+        # isn't nice to use either.
+        #     If the user explicitly specified int then let the exception
+        # through: I'm afraid int isn't supported by ca on 64-bit!
+        if datatype is None and value.dtype.char == 'l':
+            value = numpy.require(value, dtype = numpy.int32)
+            dbrtype = DBR_LONG
+        else:
+            raise
+
+    return dbrtype, len(value), value.ctypes.data, value
