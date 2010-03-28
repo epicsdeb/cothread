@@ -2,14 +2,15 @@
 
 #export DH_VERBOSE=1
 
-DEB_PYTHON_SYSTEM=pycentral
 PYVERS=$(shell pyversions -vr debian/control)
 
 build: build-stamp
 build-stamp:
 	dh build --before auto_configure
 
-	python setup.py build --build-base="$(CURDIR)/build"
+	for vv in $(PYVERS); do \
+		python$$vv setup.py build --build-base="$(CURDIR)/build" \
+	|| exit 1; done
 
 	cd docs && env PYTHONPATH=$(CURDIR) ./makedocs.py
 
@@ -26,7 +27,9 @@ install: build install-stamp
 install-stamp:
 	dh install --with python_central --before auto_install
 
-	python setup.py install --root=$(CURDIR)/debian/tmp --no-compile -O0
+	for vv in $(PYVERS); do \
+		python$$vv setup.py install --root=$(CURDIR)/debian/tmp --prefix=/usr --no-compile -O0 \
+	|| exit 1;done
 
 	install -d debian/tmp/usr/share/doc/python-cothread/html
 
