@@ -69,12 +69,16 @@ Similarly the EventQueue can be used for communication.
 import sys
 import os
 import time
-import py.magic as greenlet
-greenlet.getcurrent = greenlet.greenlet.getcurrent
 import bisect
 import traceback
 import collections 
 import thread
+
+try:
+	import greenlet
+except ImportError,e:
+	import py.magic as greenlet
+	greenlet.getcurrent = greenlet.greenlet.getcurrent
 
 import coselect
 
