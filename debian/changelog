@@ -1,3 +1,11 @@
+cothread (1.15-2) unstable; urgency=low
+
+  * debian/control - starting with 1.0 the python-codespeak-lib package
+                     no longer contains greenlets.  They are in a seperate
+                     package python-greenlet.
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 29 Mar 2010 17:30:36 -0400
+
 cothread (1.15-1) unstable; urgency=low
 
   * New upstream
