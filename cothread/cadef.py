@@ -35,7 +35,7 @@ of the functions below.
 Actually, see http://www.aps.anl.gov/epics/base/R3-14/8-docs/CAref.html
 
 This module is a thin wrapper over the cadef.h file to be found in
-    /usr/epics/base/include/cadef.h
+    /usr/lib/epics/include/cadef.h
 '''
 
 import ctypes
@@ -52,7 +52,7 @@ __all__ = [
 # channel access
 # note 3.14.8.2 some threading problems when multiple with same name found
 libca = ctypes.cdll.LoadLibrary(
-    'libca.so.3.14.10')
+    'libca.so.3.14.11')
 
 
 # -----------------------------------------------------------------------------
