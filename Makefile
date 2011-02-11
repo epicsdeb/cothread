@@ -1,4 +1,4 @@
-PYTHON = python2.4
+PYTHON = python
 SCRIPT_DIR = /dls_sw/tools/bin
 TEST_INSTALL_DIR = /dls_sw/work/common/python/test/packages
 TEST_SCRIPT_DIR = /dls_sw/work/common/python/test/scripts
