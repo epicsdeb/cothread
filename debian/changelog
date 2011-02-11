@@ -1,3 +1,9 @@
+cothread (1.15-4) unstable; urgency=low
+
+  * Build for for squeeze
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 11 Feb 2011 17:30:56 -0500
+
 cothread (1.15-3) unstable; urgency=low
 
   * update to base 3.14.11
