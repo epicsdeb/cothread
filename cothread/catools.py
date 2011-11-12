@@ -332,7 +332,8 @@ class _Subscription(object):
             cadef.ca_clear_subscription(self)
             del self._as_parameter_
             del self.channel
-            del self.__value
+            if hasattr(self,"_%s__value"%self.__class__.__name__):
+                del self.__value
             del self.callback
         self.__state = self.__CLOSED
 
