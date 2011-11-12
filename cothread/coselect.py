@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007-2008 Michael Abbott, Diamond Light Source Ltd.
+# Copyright (C) 2007-2010 Michael Abbott, Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -31,7 +31,6 @@ the standard select module.'''
 
 import time
 import select as _select
-import ctypes
 import cothread
 
 
@@ -42,7 +41,7 @@ __all__ = [
     'poll_block',       # Simpler interface to blocking polling
 
     'SelectError',      # Exception raised by select()
-    
+
     # Poll constants
     'POLLIN',           # Data ready to read
     'POLLPRI',          # Urgent data ready to read
@@ -57,15 +56,20 @@ __all__ = [
 
 # A helpful routine to ensure that our select() behaves as much as possible
 # like the real thing!
-PyObject_AsFileDescriptor = ctypes.pythonapi.PyObject_AsFileDescriptor
-PyObject_AsFileDescriptor.argtypes = [ctypes.py_object]
+def _AsFileDescriptor(file):
+    if isinstance(file, int) or isinstance(file, long):
+        return file
+    else:
+        return file.fileno()
 
-POLLIN     = _select.POLLIN
-POLLPRI    = _select.POLLPRI
-POLLOUT    = _select.POLLOUT
-POLLERR    = _select.POLLERR
-POLLHUP    = _select.POLLHUP
-POLLNVAL   = _select.POLLNVAL
+# We need these names from _select, but unfortunately it has a bad habit of not
+# always providing them, particularly if poll() is broken.  So we define
+# defaults to use internally if they can't be read.
+_poll_values = [
+    ('POLLIN',   1),    ('POLLPRI',  2),    ('POLLOUT',  4),
+    ('POLLERR',  8),    ('POLLHUP',  16),   ('POLLNVAL', 32)]
+for _name, _default in _poll_values:
+    globals()[_name] = getattr(_select, _name, _default)
 
 # These three flags are always treated as of interest and are never consumed.
 POLLEXTRA = POLLERR | POLLHUP | POLLNVAL
@@ -144,13 +148,13 @@ def poll_block_select(poll_list, timeout = None):
             for wtd, event in zip(selected, flag_mapping):
                 if file in wtd:
                     result[file] = result.get(file, 0) | event
-                    
+
     return result.items()
 
-    
+
+import platform as _platform
 if hasattr(_select, 'poll'):
-    import platform
-    if platform.system() == 'Darwin':
+    if _platform.system() == 'Darwin':
         # Unfortunately it would appear that Apple's implementation of the
         # poll() system call is incomplete: it returns POLLNVAL for devices!
         # Apparently kqueue and poll fail on anything in /dev (I suppose they
@@ -158,13 +162,18 @@ if hasattr(_select, 'poll'):
         #   So if this is your platform, sorry, we have to use select.
         poll_block = poll_block_select
     else:
-        # This is the preferred case (if you're on Windows, well I've *no*
-        # idea what's going to happen ... and frankly, I don't care).
+        # This is the preferred case.
         poll_block = poll_block_poll
 else:
-    # If poll not available use select instead
-    poll_block = poll_block_select
-    
+    if _platform.system() == 'Windows':
+        # Oops.  Has to be the Windows way, how horrid.
+        from poll_win32 import poll_block_win32 as poll_block
+    else:
+        # If poll not available use select instead.  Guess this is going to be
+        # an ancient Unix with select but no poll, or Darwin on a newer Python
+        # version where the broken poll is excluded.
+        poll_block = poll_block_select
+
 
 def _compute_poll_list(poll_queue):
     '''Computes a list of (file, event_mask) pairs of all descriptor events
@@ -189,14 +198,14 @@ def _compute_poll_list(poll_queue):
 
 class _Poller(object):
     '''Wrapper for handling poll wakeup.'''
-    
+
     def __init__(self, event_list):
         # .events is a dictionary mapping each descriptor we're interested in
         # to the bit mask of interesting events.
         self.events = {}
         self.__ready_list = {}
         for file, events in event_list:
-            file = PyObject_AsFileDescriptor(file)
+            file = _AsFileDescriptor(file)
             self.events[file] = self.events.get(file, 0) | events
 
     def notify_wakeup(self, file, events):
@@ -241,27 +250,26 @@ def poll_list(event_list, timeout = None):
 class poll(object):
     '''Emulates select.poll(), but implements a cooperative non-blocking
     version for use with the cothread library.'''
-    
+
     def __init__(self):
         self.__watch_list = {}
-        
-    def register(self, file,
-            events = _select.POLLIN | _select.POLLPRI | _select.POLLOUT):
+
+    def register(self, file, events = POLLIN | POLLPRI | POLLOUT):
         '''Adds file to the list of objects to be polled.  The default set
         of events is POLLIN|POLLPRI|POLLOUT.'''
-        file = PyObject_AsFileDescriptor(file)
+        file = _AsFileDescriptor(file)
         self.__watch_list[file] = events
-        
+
     def unregister(self, file):
         '''Removes file from the polling list.'''
-        file = PyObject_AsFileDescriptor(file)
+        file = _AsFileDescriptor(file)
         del self.__watch_list[file]
 
     def poll(self, timeout = None):
         '''Blocks until any of the registered file events become ready.
 
         Beware: the timeout here is in milliseconds.  This is consistent
-        with the select.poll().poll() function which this is emulating, 
+        with the select.poll().poll() function which this is emulating,
         but inconsistent with all the other cothread routines!
 
         Consider using poll_list() instead for polling.'''
@@ -294,7 +302,7 @@ def select(iwtd, owtd, ewtd, timeout = None):
     interest = [(file, flag)
         for files, flag in zip(inputs, flag_mapping)
         for file in files]
-    
+
     # Now wait until at least one of our interests occurs.
     poll_result = dict(poll_list(interest, timeout))
 
@@ -302,7 +310,7 @@ def select(iwtd, owtd, ewtd, timeout = None):
     results = ([], [], [])
     for result, input, flag in zip(results, inputs, flag_mapping):
         for object in input:
-            file = PyObject_AsFileDescriptor(object)
+            file = _AsFileDescriptor(object)
             events = poll_result.get(file, 0)
             if events & POLLEXTRA:
                 # If any of the extra events come up, raise an exception.

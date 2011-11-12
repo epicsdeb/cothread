@@ -11,7 +11,7 @@ Python, and makes essential use of the features of cooperative threads -- in
 particular, +camonitor+ notifies updates in the background.
 
 Related documentation: link:catools.html[Channel Access Library], back to
-link:index.html[Index Page]. 
+link:index.html[Index Page].
 
 
 Introduction to Cothreads
@@ -45,7 +45,7 @@ followed in the top level application:
 ----------------------------
 # First the version of cothread library must be specified
 from pkg_resources import require
-require('cothread==1.15')    # or just require('cothread')
+require('cothread==2.0')    # or just require('cothread')
 
 # Import the cothread library in each module that uses it.
 import cothread
@@ -60,16 +60,16 @@ qtapp = cothread.iqt()
 cothread.WaitForQuit()
 ----------------------------
 
-1. +require(\'cothread==1.15\')+.  This statement is required by the way Diamond
+1. +require(\'cothread==2.0')+.  This statement is required by the way Diamond
 Controls modules are managed: it is necessary to specify precisely _which_
 version of a module is to be used.  This means that API changes can be made in
-future releases without breaking existing code.  
+future releases without breaking existing code.
 +
-Alternatively +require(\'cothread\')+ can be used to request the most recent
+Alternatively +require(\'cothread')+ can be used to request the most recent
 installed version.
 +
 Note that the +require+ statements should only occur once in each application:
-it is an easy mistake to place them at the head of each Python module.  
+it is an easy mistake to place them at the head of each Python module.
 
 2. If Qt is to be used (for any graphical user interface) then the cothread
 library needs to be informed: this is done by calling +iqt()+ before any work
@@ -101,8 +101,8 @@ suspension points before control is returned to the suspended cothread.
 
 The following are suspension points in the core +cothread+ library:
 
-+Sleep+, +SleepUntil+:: Note that if a delay of 0 is specified to +Sleep+ or
-if the deadline for +SleepUntil+ has passed the caller will not be suspended.
++Sleep+, +SleepUntil+:: The caller is always suspended, even if the expiry
+time has passed, so +Sleep(0)+ has much the same effect as +Yield()+.
 
 +Yield+::  This suspends the caller until all other active cothreads have run
 to their own suspension points.
@@ -124,7 +124,7 @@ that +camonitor+ is the only routine guaranteed not to suspend):
 
 +caget+:: This always suspends the caller until the requested
 channel access data has arrived (or a timeout occurs), the only exception
-being if an expired timeout is specified.  
+being if an expired timeout is specified.
 
 +caput+:: This routine will normally cause the caller to suspend.  To avoid
 suspension, only put to one PV, use +wait=False+, and ensure that the channel
@@ -162,7 +162,7 @@ Timers are created by the +Timer+ function documented below.  The callback
 that is invoked as part of the timer is a fresh cothread, spawned when the
 timer is created.  This means that the timer callback function can run for as
 long as desired without interfering with other timer callbacks (so long as it
-suspends regularly, of course!)  
+suspends regularly, of course!)
 +
 Note however that a timer will not retrigger itself until its current callback
 routine completes.
@@ -191,15 +191,32 @@ The following functions define the basic cothread interface provided by this
 module.
 
 
-+Spawn(function, arguments, raise_on_wait=False, ...)+::
++Spawn(function, arguments, raise_on_wait=False, stack_size=0, ...)+::
 
 A new cooperative thread, or _cothread_, is created as a call to
 +function(arguments)+ where +arguments+ can be any list of values and keyword
-arguments (except for the special +raise_on_wait+ flag).  This routine is not
-a suspension point.
+arguments (except for the +raise_on_wait+ and +stack_size+ arguments).
+This routine is not a suspension point.
 +
 This is the fundamental building block of the cothreading library.  It is
 quite cheap to spawn fresh cothreads, and so this routine can be used freely.
++
+The following arguments are treated specially by this routine:
++
+--
++raise_on_wait+::
+
+By default any exception raised by running +function(arguments)+ is caught and
+reported by a traceback to +stderr+.  If this flag is set then instead the
+exception is retained and returned when +Wait+ is called.
+
++stack_size+::
+
+If a non-zero +stack_size+ is specified the new cothread is allocated its own
+stack, otherwise it will share the main process stack.  The tradeoffs involved
+in whether to allocate a stack are subtle.  By default it is safest to leave
+this parameter unset.
+--
 +
 It is possible to wait for the completion of a spawned cothread by calling its
 +Wait+ method:
@@ -215,7 +232,7 @@ be re-raised when +Wait+ is called.
 
 
 +Sleep(delay)+, +SleepUntil(time)+::
- 
+
 The calling task is suspended until the given time.  +Sleep(delay)+
 suspends the task for at least delay seconds, +SleepUntil(time)+
 suspends until the specified time has passed (+time+ is defined as the
@@ -292,9 +309,13 @@ suspended.
 +Signal(value)+::
 Adds the given value to the queue, waking up a waiting cothread if one is
 waiting.  This routine does not suspend the caller.
+
++close()+::
+Marks the queue as closed, after which no more signals can be raised.  Calling
++Wait()+ on a closed queue will cause +StopIteration+ to be raised.
 --
 +
-Example code using iteration over an +EventQueue+. 
+Example code using iteration over an +EventQueue+.
 +
 ----------------------------
 def consumer(e):
@@ -348,7 +369,7 @@ by an exception.  By default (if +catch_interrupt=True+ is set) the keyboard
 interrupt is silently caught, but still causes +WaitForQuit+ to exit.
 +
 This is designed to be used as the final blocking call at the end of the main
-program so that other event loops can run.  
+program so that other event loops can run.
 
 
 
