@@ -4,7 +4,6 @@ Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7),
                python-setuptools,
-               python-codespeak-lib (< 1.0) | python-greenlet,
                python-all-dev, python-all-dbg, python-central (>= 0.6),
                python-numpy, libepics3.14.11
 XS-Python-Version: >= 2.4
@@ -15,7 +14,6 @@ Package: python-cothread
 Architecture: all
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
-         python-codespeak-lib (< 1.0) | python-greenlet,
          libepics3.14.11
 Conflicts: python-cothread-doc (<< 1.15)
 XB-Python-Version: ${python:Versions}
