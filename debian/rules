@@ -17,7 +17,6 @@ build-stamp:
 	touch $@
 
 clean:
-	rm -rf docs/pydoc
 	rm -rf cothread.egg-info
 	dh clean
 
