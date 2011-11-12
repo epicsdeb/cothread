@@ -12,8 +12,6 @@ build-stamp:
 		python$$vv setup.py build --build-base="$(CURDIR)/build" \
 	|| exit 1; done
 
-	cd docs && env PYTHONPATH=$(CURDIR) ./makedocs.py
-
 	dh build --after auto_test
 
 	touch $@
@@ -31,22 +29,14 @@ install-stamp:
 		python$$vv setup.py install --root=$(CURDIR)/debian/tmp --prefix=/usr --no-compile -O0 \
 	|| exit 1;done
 
-	install -d debian/tmp/usr/share/doc/python-cothread/html
-
-	cp docs/*.txt debian/tmp/usr/share/doc/python-cothread/
-
-	cp docs/pydoc/*.html debian/tmp/usr/share/doc/python-cothread/html/
-
-	cp -r examples debian/tmp/usr/share/doc/python-cothread/
-
 	dh install --with python_central --after auto_install
 
 	touch install-stamp
 
-binary-arch: #install
-#	dh binary-arch
+binary-arch: install
+	dh binary-arch
 
-binary-indep: install
-	dh binary-indep
+binary-indep: #install
+#	dh binary-indep
 
 binary: binary-arch binary-indep

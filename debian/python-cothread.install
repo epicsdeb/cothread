@@ -1,4 +1,4 @@
 usr/lib/python*/site-packages/cothread*
-usr/share/doc/python-cothread/*.txt
-usr/share/doc/python-cothread/html
-usr/share/doc/python-cothread/examples
+docs/*.txt usr/share/doc/python-cothread/
+docs/pydoc/*.html usr/share/doc/python-cothread/html
+examples usr/share/doc/python-cothread
