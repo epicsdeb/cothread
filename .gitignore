@@ -1,4 +1,13 @@
-# /.gitignore
 *.pyc
-docs/*.html
-docs/pydoc/
+*.so
+/docs/*.html
+/docs/pydoc/
+/cothread/libca_path.py
+/context/tests/testco
+
+# Setuptools debris
+/cothread.egg-info
+/build
+/dist
+
+/Makefile.private

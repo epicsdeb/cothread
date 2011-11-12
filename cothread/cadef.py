@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007 James Rowland, 2007-2008 Michael Abbott,
+# Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,
 # Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
@@ -29,30 +29,25 @@
 
 '''Functions imported directly from libca.
 
-See http://he3.dartmouth.edu/manuals/CAref.html for detailed documentation
-of the functions below.
-
-Actually, see http://www.aps.anl.gov/epics/base/R3-14/8-docs/CAref.html
+See http://www.aps.anl.gov/epics/base/R3-14/11-docs/CAref.html for detailed
+documentation of the functions below.
 
 This module is a thin wrapper over the cadef.h file to be found in
-    /dls_sw/epics/R3.14.8.2/base/include/cadef.h
+    $EPICS_BASE/include/cadef.h
 '''
-
-import ctypes
 
 __all__ = [
     # Event type notification codes for camonitor
-    'DBE_VALUE',        # Notify normal value changes  
+    'DBE_VALUE',        # Notify normal value changes
     'DBE_LOG',          # Notify archival value changes
     'DBE_ALARM',        # Notify alarm state changes
     'DBE_PROPERTY',     # Notify property change events (3.14.11 and later)
 ]
 
 
-# channel access
-# note 3.14.8.2 some threading problems when multiple with same name found
-libca = ctypes.cdll.LoadLibrary(
-    '/dls_sw/epics/R3.14.8.2/base/lib/linux-x86/libca.so')
+import ctypes
+from load_ca import libca
+
 
 
 # -----------------------------------------------------------------------------
@@ -66,8 +61,8 @@ DBE_ALARM   = 4
 DBE_PROPERTY = 8
 
 # Connection state as passed to connection handler
-CA_OP_CONN_UP        = 6
-CA_OP_CONN_DOWN      = 7
+CA_OP_CONN_UP   = 6
+CA_OP_CONN_DOWN = 7
 
 # Status codes as returned by virtually all ca_ routines.  We only specially
 # handle normal return, timeout, or disconnection.
@@ -93,7 +88,7 @@ class event_handler_args(ctypes.Structure):
         ('raw_dbr', ctypes.c_void_p),   # Pointer to raw dbr array
         ('status',  ctypes.c_int)]      # ECA_ status code of operation
 event_handler = ctypes.CFUNCTYPE(None, event_handler_args)
-    
+
 
 # Exception handler, called to report asynchronous errors that have no other
 # report path.
@@ -145,7 +140,7 @@ class CAException(Exception):
         return '%s calling %s' % (
             ca_message(self.status), self.function.__name__)
 
-        
+
 
 # For routines which are simply expected to succeed this routine should be
 # assigned to the routine's errcheck attribute.
@@ -198,6 +193,7 @@ ctypes.pythonapi.Py_DecRef.argtypes = [ctypes.py_object]
 #
 # Converts channel access status code (an int) into a printable error message.
 ca_message = libca.ca_message
+ca_message.argtypes = [ctypes.c_long]
 ca_message.restype = ctypes.c_char_p
 
 
@@ -208,6 +204,7 @@ ca_message.restype = ctypes.c_char_p
 #
 # Adds global exception handler: called for all asynchronous errors.
 ca_add_exception_event = libca.ca_add_exception_event
+ca_add_exception_event.argtypes = [exception_handler, ctypes.c_void_p]
 ca_add_exception_event.errcheck = expect_ECA_NORMAL
 
 
@@ -217,6 +214,7 @@ ca_add_exception_event.errcheck = expect_ECA_NORMAL
 # channel, or returns TYPENOTCONN if the channel is not connected.
 TYPENOTCONN = -1
 ca_field_type = libca.ca_field_type
+ca_field_type.argtypes = [ctypes.c_void_p]
 ca_field_type.errcheck = expect_connected(TYPENOTCONN)
 
 
@@ -225,6 +223,7 @@ ca_field_type.errcheck = expect_connected(TYPENOTCONN)
 # Returns the array element count for the data array associated with the
 # channel.  Returns 0 if the channel is not connected.
 ca_element_count = libca.ca_element_count
+ca_element_count.argtypes = [ctypes.c_void_p]
 ca_element_count.errcheck = expect_connected(0)
 
 
@@ -238,6 +237,9 @@ ca_element_count.errcheck = expect_connected(0)
 # called when the state of the channel changes.  The context argument can be
 # recovered by calling ca_puser(channel_id).
 ca_create_channel = libca.ca_create_channel
+ca_create_channel.argtypes = [
+    ctypes.c_char_p, connection_handler, ctypes.py_object,
+    ctypes.c_int, ctypes.c_void_p]
 ca_create_channel.errcheck = expect_ECA_NORMAL
 
 
@@ -245,6 +247,7 @@ ca_create_channel.errcheck = expect_ECA_NORMAL
 #
 # Closes the given channel.
 ca_clear_channel = libca.ca_clear_channel
+ca_clear_channel.argtypes = [ctypes.c_void_p]
 ca_clear_channel.errcheck = expect_ECA_NORMAL
 
 
@@ -252,6 +255,7 @@ ca_clear_channel.errcheck = expect_ECA_NORMAL
 #
 # Returns the private user context associated with the channel.
 ca_puser = libca.ca_puser
+ca_puser.argtypes = [ctypes.c_void_p]
 ca_puser.restype = ctypes.py_object
 ca_puser.errcheck = convert_py_object
 
@@ -265,6 +269,9 @@ ca_puser.errcheck = convert_py_object
 # Makes a request to receive data from the given channel.  The handler will
 # be called if data is retrieved or the channel becomes disconnected.
 ca_array_get_callback = libca.ca_array_get_callback
+ca_array_get_callback.argtypes = [
+    ctypes.c_long, ctypes.c_long, ctypes.c_void_p, event_handler,
+    ctypes.py_object]
 ca_array_get_callback.errcheck = expect_ECA_NORMAL
 
 
@@ -277,6 +284,9 @@ ca_array_get_callback.errcheck = expect_ECA_NORMAL
 # Writes data to the given channel.  The handler is called once server side
 # processing is complete, or if a failure occurs.
 ca_array_put_callback = libca.ca_array_put_callback
+ca_array_put_callback.argtypes = [
+    ctypes.c_long, ctypes.c_long, ctypes.c_void_p, ctypes.c_void_p,
+    event_handler, ctypes.py_object]
 ca_array_put_callback.errcheck = expect_ECA_NORMAL
 
 
@@ -285,6 +295,8 @@ ca_array_put_callback.errcheck = expect_ECA_NORMAL
 # Writes data to the given channel, returning immediately.  There may be no
 # notification if this fails.
 ca_array_put = libca.ca_array_put
+ca_array_put.argtypes = [
+    ctypes.c_long, ctypes.c_long, ctypes.c_void_p, ctypes.c_void_p]
 ca_array_put.errcheck = expect_ECA_NORMAL
 
 
@@ -316,6 +328,9 @@ ca_array_put.errcheck = expect_ECA_NORMAL
 #   event_id: an identifier for this subscription, used for subsequently
 #       cancelling this subscription.
 ca_create_subscription = libca.ca_create_subscription
+ca_create_subscription.argtypes = [
+    ctypes.c_long, ctypes.c_long, ctypes.c_void_p, ctypes.c_long,
+    event_handler, ctypes.py_object, ctypes.c_void_p]
 ca_create_subscription.errcheck = expect_ECA_NORMAL
 
 
@@ -323,6 +338,7 @@ ca_create_subscription.errcheck = expect_ECA_NORMAL
 #
 # Cancels a previously established subscription using the returned event_id.
 ca_clear_subscription = libca.ca_clear_subscription
+ca_clear_subscription.argtypes = [ctypes.c_void_p]
 ca_clear_subscription.errcheck = expect_ECA_NORMAL
 
 
@@ -331,20 +347,15 @@ ca_clear_subscription.errcheck = expect_ECA_NORMAL
 # To be called on initialisation, specifying whether asynchronous callbacks
 # are to be enabled.
 ca_context_create = libca.ca_context_create
+ca_context_create.argtypes = [ctypes.c_int]
 ca_context_create.errcheck = expect_ECA_NORMAL
-
-
-#   context = ca_current_context()
-#
-# Returns the channel access context or NULL.
-ca_current_context = libca.ca_current_context
-ca_current_context.restype = ctypes.c_void_p
 
 
 #   ca_context_destroy()
 #
 # To be called at exit.
 ca_context_destroy = libca.ca_context_destroy
+ca_context_destroy.argtypes = []
 
 
 #   status = ca_pend_event(timeout)
@@ -363,12 +374,14 @@ cs_prev_conn = 1
 cs_conn = 2
 cs_closed = 3
 ca_state = libca.ca_state
+ca_state.argtypes = [ctypes.c_void_p]
 
 
 #   host = ca_host_name(channel_id)
 #
 # Returns the host name of the connected server
 ca_host_name = libca.ca_host_name
+ca_host_name.argtypes = [ctypes.c_void_p]
 ca_host_name.restype = ctypes.c_char_p
 
 
@@ -377,6 +390,9 @@ ca_host_name.restype = ctypes.c_char_p
 #
 # Returns whether the channel can be read or written by this client.
 ca_read_access = libca.ca_read_access
+ca_read_access.argtypes = [ctypes.c_void_p]
 ca_read_access.restype = bool
+
 ca_write_access = libca.ca_write_access
+ca_write_access.argtypes = [ctypes.c_void_p]
 ca_write_access.restype = bool

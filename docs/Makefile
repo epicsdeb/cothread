@@ -1,7 +1,7 @@
 # Makefile for building cothread documentation
+TOP = ..
+include $(TOP)/Makefile.config
 
-# Ensure asciidoc is on the path.
-PATH := $(PATH):/dls_sw/tools/local/bin
 
 ASCIIDOC_FILES = $(wildcard *.txt)
 
@@ -14,7 +14,7 @@ clean:
 	rm -rf pydoc
 
 %.html: %.txt
-	asciidoc -o $@ $<
+	$(ASCIIDOC) -o $@ $<
 
-pydoc: $(wildcard ../cothread/*.py) 
-	./makedocs.py
+pydoc: $(wildcard ../cothread/*.py)
+	$(PYTHON) makedocs.py

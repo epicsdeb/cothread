@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007 James Rowland, 2007-2008 Michael Abbott,
+# Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,
 # Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
@@ -31,18 +31,13 @@
 for input from the interpreter command line.  Also includes optional support
 for the Qt event loop.'''
 
-import ctypes
 import select
 import sys
 import os
 import traceback
 
-from ctypes import *
-
 import cothread
 import coselect
-
-from cothread import _scheduler
 
 
 __all__ = [
@@ -50,9 +45,10 @@ __all__ = [
 ]
 
 
-hook_function = CFUNCTYPE(None)
+# When Qt is running in its own stack it really needs quite a bit of room.
+QT_STACK_SIZE = 1024 * 1024
 
-@hook_function
+
 def _readline_hook():
     '''Runs other cothreads until input is available.'''
     coselect.poll_list([(0, coselect.POLLIN)])
@@ -65,16 +61,15 @@ def _install_readline_hook(enable_hook = True):
         This routine can also be used to disable the input hook by setting the
     enable_hook parameter to False -- for example, this can be helpful if a
     background activity is causing a nuisance.'''
-    
-    PyOS_InputHookP = pointer(hook_function.in_dll(
-        pythonapi, 'PyOS_InputHook'))
+
+    from _coroutine import install_readline_hook
     if enable_hook:
-        PyOS_InputHookP[0] = _readline_hook
+        install_readline_hook(_readline_hook)
     else:
-        cast(PyOS_InputHookP, POINTER(c_void_p))[0] = 0
+        install_readline_hook(None)
 
 
-        
+
 def _poll_iqt(QT, poll_interval):
     while True:
         try:
@@ -103,7 +98,7 @@ def _run_iqt(QT, poll_interval):
         cothread.Yield(poll_interval)
         while _global_timeout_depth > timeout_depth:
             cothread.Sleep(poll_interval)
-            
+
         _global_timeout_depth -= 1
 
     def at_exit():
@@ -133,8 +128,8 @@ def _run_iqt(QT, poll_interval):
     QT.unlock()
     qt_done.Signal()
 
-        
-def iqt(poll_interval = 0.05, use_timer = False, argv = sys.argv):
+
+def iqt(poll_interval = 0.05, use_timer = True, argv = sys.argv):
     '''Installs Qt event handling hook.  The polling interval is in
     seconds.'''
 
@@ -157,9 +152,6 @@ def iqt(poll_interval = 0.05, use_timer = False, argv = sys.argv):
             QtCore.pyqtRemoveInputHook()
             _install_readline_hook(True)
 
-            if use_timer:
-                print >>sys.stderr, 'Experimental Qt timer enabled'
-            
         except ImportError:
             import qt
             from qt import SIGNAL, QTimer, QApplication
@@ -178,11 +170,12 @@ def iqt(poll_interval = 0.05, use_timer = False, argv = sys.argv):
 
     QT.QCoreApplication.connect(
         QT.instance(), QT.SIGNAL('lastWindowClosed()'), cothread.Quit)
-    
+
     if use_timer:
-        cothread.Spawn(_run_iqt,  QT, poll_interval)
+        iqt_thread = _run_iqt
     else:
-        cothread.Spawn(_poll_iqt, QT, poll_interval)
+        iqt_thread = _poll_iqt
+    cothread.Spawn(iqt_thread,  QT, poll_interval, stack_size = QT_STACK_SIZE)
     cothread.Yield()
 
     return _qapp

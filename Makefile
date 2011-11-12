@@ -1,40 +1,46 @@
-PYTHON = python2.4
-SCRIPT_DIR = /dls_sw/tools/bin
-TEST_INSTALL_DIR = /dls_sw/work/common/python/test/packages
-TEST_SCRIPT_DIR = /dls_sw/work/common/python/test/scripts
+TOP = .
 
-# builds a versioned python egg of the diamond namespace
-# install with easy_install
-# see http://peak.telecommunity.com/DevCenter/setuptools
+# This includes Makefile.private which is written by the make system, before
+# defining sensible defaults for all the symbols here.
+include $(TOP)/Makefile.config
 
-all: dist make_docs
+# Extra configuration dependencies.
+DEPENDENCIES = \
+    $(wildcard cothread/*.py cothread/*/*.py context/*.c context/*.h)
 
-clean: remove clean_docs
 
-dist: setup.py $(wildcard cothread/*.py) 
-	$(PYTHON) setup.py bdist_egg
+default: dist docs
+
+dist: setup.py $(DEPENDENCIES) cothread/libca_path.py
+	MODULEVER=$(MODULEVER) $(PYTHON) setup.py bdist_egg
 	touch dist
 
-remove:
+# Clean the module
+clean: clean_docs
 	$(PYTHON) setup.py clean
-	-rm -rf build dist *egg-info print_documentation.sh
+	-rm -rf build dist *egg-info installed.files cothread/libca_path.py
 	-find -name '*.pyc' -exec rm {} \;
+	rm -f cothread/_coroutine.so
 
-install: all
+# Install the built egg
+install: dist
 	$(PYTHON) setup.py easy_install -m \
+            --record=installed.files \
+            --install-dir=$(INSTALL_DIR) \
             --script-dir=$(SCRIPT_DIR) dist/*.egg
 
-test: all
-	$(PYTHON) setup.py easy_install -m \
-            --install-dir=$(TEST_INSTALL_DIR) \
-            --script-dir=$(TEST_SCRIPT_DIR) dist/*.egg
-
-make_docs:
-	make -C docs
+docs: cothread/_coroutine.so
+	$(MAKE) -C docs
 
 clean_docs:
-	make -C docs clean
+	$(MAKE) -C docs clean
 
+.PHONY: default clean install docs clean_docs
 
-runtests:
-	make -C tests
+cothread/libca_path.py:
+	EVAL="$$($(PYTHON) cothread/load_ca.py)"  && \
+        eval "$$EVAL"  && \
+        echo "libca_path = '$$CATOOLS_LIBCA_PATH'" >$@
+
+cothread/_coroutine.so: $(wildcard context/*.c context/*.h)
+	$(PYTHON) setup.py build_ext -i

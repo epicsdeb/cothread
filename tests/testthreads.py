@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/env python2.6
 
 import require
 from cothread.cothread import *
@@ -36,11 +36,11 @@ def wait_for(event, timeout):
     print 'wait_for', event, 'starting'
     while True:
         try:
-            event.Wait(timeout)
+            e = event.Wait(timeout)
         except Timedout:
             print 'Timed out'
         else:
-            print 'Got event', event.value
+            print 'Got event', e
 #        Yield()
 
 def signaller(event):
@@ -53,9 +53,9 @@ def signaller(event):
 
 if __name__ == '__main__':
 #    threads.SpawnScheduler()
-    
+
     start = time_time()
-    
+
 #     Spawn(thread_one)
     thread_two = Spawn(thread_two)
     Spawn(thread_three)

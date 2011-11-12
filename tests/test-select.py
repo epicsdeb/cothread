@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/env python2.6
 
 # Testing coselect
 
@@ -13,7 +13,7 @@ def ThreadTicker(queue):
         print 'tick',
         queue.Signal('tick')
         time.sleep(1)
-        
+
 
 
 def Listener(queue, n):
@@ -25,7 +25,7 @@ def Ticker(n):
     while True:
         print 'ticker', n
         Sleep(n)
-        
+
 
 queue = ThreadedEventQueue()
 
@@ -38,7 +38,4 @@ Spawn(Listener, queue, 1)
 Spawn(Listener, queue, 2)
 Spawn(Ticker, 0.5)
 
-
 WaitForQuit()
-
-
