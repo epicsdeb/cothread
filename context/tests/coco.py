@@ -1,4 +1,4 @@
-#!/dls_sw/tools/python2.4-debug/bin/python2.4
+#!/usr/bin/python
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
