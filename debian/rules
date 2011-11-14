@@ -17,6 +17,7 @@ build-stamp:
 	touch $@
 
 clean:
+	rm -f Makefile
 	rm -rf cothread.egg-info
 	dh clean
 
