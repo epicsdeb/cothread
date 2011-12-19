@@ -1,3 +1,9 @@
+cothread (2.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 19 Dec 2011 10:18:47 -0500
+
 cothread (2.0-1) unstable; urgency=low
 
   * New upstream release
