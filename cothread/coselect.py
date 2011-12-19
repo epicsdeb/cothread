@@ -51,7 +51,21 @@ __all__ = [
     'POLLNVAL',         # Invalid request, not open.
 
     'POLLEXTRA',        # If any of these are set there is a socket problem
+
+    'select_hook',      # Replaces select methods
 ]
+
+# Pick up copies of the select methods we might modify when hooking.
+_select_select = _select.select
+_select_poll = _select.poll
+
+
+def select_hook():
+    '''Replaces the blocking methods in the select module with the non-blocking
+    methods implemented here.  Not safe to call if other threads need the
+    original methods.'''
+    _select.select = select
+    _select.poll = poll
 
 
 # A helpful routine to ensure that our select() behaves as much as possible
@@ -89,7 +103,7 @@ def poll_block_poll(poll_list, timeout = None):
     useful functionality.  This will block non-cooperatively, so should only
     be used in a scheduler loop.
         Note that the timeout is in seconds.'''
-    p = _select.poll()
+    p = _select_poll()
     for file, events in poll_list:
         p.register(file, events)
     if timeout is not None:
@@ -122,7 +136,7 @@ def poll_block_select(poll_list, timeout = None):
 
     result = {}
     try:
-        selected = _select.select(*selects + (timeout,))
+        selected = _select_select(*selects + (timeout,))
     except _select.error:
         # Oh dear.  *Something* is wrong, but I don't know which file handle
         # is broken.  This is not good: going to have to probe each file in
@@ -133,7 +147,7 @@ def poll_block_select(poll_list, timeout = None):
                 if events & event:
                     wtd.append(file)
             try:
-                selected = _select.select(*selects + (0,))
+                selected = _select_select(*selects + (0,))
             except _select.error:
                 # Still don't really know what's wrong, but it's a safe bet
                 # the problem is the file handle.
@@ -235,16 +249,9 @@ def poll_list(event_list, timeout = None):
     constants).  This routine will cooperatively block until any descriptor
     signals a selected event (or any event from HUP, ERR, NVAL) or until
     the timeout (in seconds) occurs.'''
-    until = cothread.Deadline(timeout)
-    if until is not None and time.time() >= until:
-        # If timed out then probe the devices directly anyway.  This bypasses
-        # the cothread scheduler ensuring we actually look at the devices (if
-        # we hand over to the scheduler we'll time out first).
-        return poll_block(event_list, 0)
-    else:
-        poller = _Poller(event_list)
-        cothread._scheduler.poll_until(poller, until)
-        return poller.ready_list()
+    poller = _Poller(event_list)
+    cothread._scheduler.poll_until(poller, cothread.GetDeadline(timeout))
+    return poller.ready_list()
 
 
 class poll(object):

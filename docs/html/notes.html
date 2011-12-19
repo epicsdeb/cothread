@@ -1,0 +1,143 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Cothread Architecture Notes &mdash; Cothread  documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Cothread  documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Cothread  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="cothread-architecture-notes">
+<span id="notes"></span><h1>Cothread Architecture Notes<a class="headerlink" href="#cothread-architecture-notes" title="Permalink to this headline">¶</a></h1>
+<p>Some notes on key architectural issues in the <a class="reference internal" href="cothread.html#module-cothread" title="cothread"><tt class="xref py py-mod docutils literal"><span class="pre">cothread</span></tt></a> scheduler.</p>
+<div class="section" id="coroutine-switching">
+<h2>Coroutine Switching<a class="headerlink" href="#coroutine-switching" title="Permalink to this headline">¶</a></h2>
+<p>There are precisely 7 calls to <tt class="xref py py-func docutils literal"><span class="pre">switch()</span></tt> in the <a class="reference internal" href="cothread.html#module-cothread" title="cothread"><tt class="xref py py-mod docutils literal"><span class="pre">cothread</span></tt></a> library,
+and it&#8217;s crucial that they work together correctly.  These calls are (in order
+of appearance in the code).</p>
+<ul class="simple">
+<li>During scheduler creation (in the <tt class="xref py py-func docutils literal"><span class="pre">create()</span></tt> method of
+<tt class="xref py py-class docutils literal"><span class="pre">_Scheduler</span></tt>) we create a separate scheduler task and switch to that.
+This should be called from the main parent task (ie, when it ends, the
+application terminates).</li>
+<li>As soon as the scheduler has been initialised, control is returned to the
+main task.  This is in <tt class="xref py py-func docutils literal"><span class="pre">__scheduler()</span></tt>, which carries a top level loop
+for restarting the scheduler.</li>
+<li>If the main scheduler loop <tt class="xref py py-func docutils literal"><span class="pre">__schedule_loop()</span></tt> raises an exception,
+control is switched to the main parent task with a special
+<tt class="xref py py-const docutils literal"><span class="pre">__WAKEUP_INTERRUPT</span></tt> return code.  The main task will at this point
+normally be waiting for a normal scheduler wake up.</li>
+<li>The <tt class="xref py py-func docutils literal"><span class="pre">__tick()</span></tt> dispatcher switches to all ready tasks in turn passing a
+wakeup code, either <tt class="xref py py-const docutils literal"><span class="pre">__WAKEUP_NORMAL</span></tt> or <tt class="xref py py-const docutils literal"><span class="pre">__WAKEUP_TIMEOUT</span></tt>.</li>
+<li>If <tt class="xref py py-func docutils literal"><span class="pre">poll_scheduler()</span></tt> has been called, and thus
+<tt class="xref py py-func docutils literal"><span class="pre">__poll_callback()</span></tt> is set, the routine <tt class="xref py py-func docutils literal"><span class="pre">__poll_suspend()</span></tt> will
+switch back to the suspended <tt class="xref py py-func docutils literal"><span class="pre">poll_scheduler()</span></tt> call.  In this case
+special polling arguments are passed (this should be a list of (descriptor,
+flags) pairs, together with a timeout), and a list of active descriptors
+should be returned.</li>
+<li><tt class="xref py py-func docutils literal"><span class="pre">poll_scheduler()</span></tt> defines the other side of this switch: a list of
+ready descriptors is passed in a switch to the scheduler task, and the
+polling arguments described above are returned from the
+<tt class="xref py py-func docutils literal"><span class="pre">poll_scheduler()</span></tt> call &#8211; unless a <tt class="xref py py-const docutils literal"><span class="pre">__WAKEUP_INTERRUPT</span></tt> switch
+has occurred!</li>
+<li>The normal place where control is switched to the scheduler is in the middle
+of <tt class="xref py py-func docutils literal"><span class="pre">wait_until()</span></tt>.  We have to pass an empty list (to be compatible
+with the <tt class="xref py py-func docutils literal"><span class="pre">poll_scheduler()</span></tt> switch), and a wakeup reason should be
+returned.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Cothread Architecture Notes</a><ul>
+<li><a class="reference internal" href="#coroutine-switching">Coroutine Switching</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/notes.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Cothread  documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Michael Abbott.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>

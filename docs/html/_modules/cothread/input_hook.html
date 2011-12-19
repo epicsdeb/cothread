@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>cothread.input_hook &mdash; Cothread  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Cothread  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Cothread  documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for cothread.input_hook</h1><div class="highlight"><pre>
+<span class="c"># This file is part of the Diamond cothread library.</span>
+<span class="c">#</span>
+<span class="c"># Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,</span>
+<span class="c"># Diamond Light Source Ltd.</span>
+<span class="c">#</span>
+<span class="c"># The Diamond cothread library is free software; you can redistribute it</span>
+<span class="c"># and/or modify it under the terms of the GNU General Public License as</span>
+<span class="c"># published by the Free Software Foundation; either version 2 of the License,</span>
+<span class="c"># or (at your option) any later version.</span>
+<span class="c">#</span>
+<span class="c"># The Diamond cothread library is distributed in the hope that it will be</span>
+<span class="c"># useful, but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General</span>
+<span class="c"># Public License for more details.</span>
+<span class="c">#</span>
+<span class="c"># You should have received a copy of the GNU General Public License along</span>
+<span class="c"># with this program; if not, write to the Free Software Foundation, Inc., 51</span>
+<span class="c"># Franklin St, Fifth Floor, Boston, MA 02110-1301 USA</span>
+<span class="c">#</span>
+<span class="c"># Contact:</span>
+<span class="c">#      Dr. Michael Abbott,</span>
+<span class="c">#      Diamond Light Source Ltd,</span>
+<span class="c">#      Diamond House,</span>
+<span class="c">#      Chilton,</span>
+<span class="c">#      Didcot,</span>
+<span class="c">#      Oxfordshire,</span>
+<span class="c">#      OX11 0DE</span>
+<span class="c">#      michael.abbott@diamond.ac.uk</span>
+
+<span class="sd">&#39;&#39;&#39;Simple readline hook to allow the scheduler to run while we&#39;re waiting</span>
+<span class="sd">for input from the interpreter command line.  Also includes optional support</span>
+<span class="sd">for the Qt event loop.&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">select</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="kn">import</span> <span class="nn">cothread</span>
+<span class="kn">import</span> <span class="nn">coselect</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&#39;iqt&#39;</span><span class="p">,</span>              <span class="c"># Enable interactive Qt loop</span>
+<span class="p">]</span>
+
+
+<span class="c"># When Qt is running in its own stack it really needs quite a bit of room.</span>
+<span class="n">QT_STACK_SIZE</span> <span class="o">=</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+
+
+<span class="k">def</span> <span class="nf">_readline_hook</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;Runs other cothreads until input is available.&#39;&#39;&#39;</span>
+    <span class="n">coselect</span><span class="o">.</span><span class="n">poll_list</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="n">coselect</span><span class="o">.</span><span class="n">POLLIN</span><span class="p">)])</span>
+
+
+<span class="k">def</span> <span class="nf">_install_readline_hook</span><span class="p">(</span><span class="n">enable_hook</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Install readline hook.  This allows the scheduler to run in parallel</span>
+<span class="sd">    with interactive python: while readline is waiting for input, the</span>
+<span class="sd">    scheduler still operates.</span>
+<span class="sd">        This routine can also be used to disable the input hook by setting the</span>
+<span class="sd">    enable_hook parameter to False -- for example, this can be helpful if a</span>
+<span class="sd">    background activity is causing a nuisance.&#39;&#39;&#39;</span>
+
+    <span class="kn">from</span> <span class="nn">_coroutine</span> <span class="kn">import</span> <span class="n">install_readline_hook</span>
+    <span class="k">if</span> <span class="n">enable_hook</span><span class="p">:</span>
+        <span class="n">install_readline_hook</span><span class="p">(</span><span class="n">_readline_hook</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">install_readline_hook</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+
+
+
+<span class="k">def</span> <span class="nf">_poll_iqt</span><span class="p">(</span><span class="n">QT</span><span class="p">,</span> <span class="n">poll_interval</span><span class="p">):</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">QT</span><span class="o">.</span><span class="n">QTimer</span><span class="o">.</span><span class="n">singleShot</span><span class="p">(</span>
+                <span class="n">poll_interval</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">,</span> <span class="n">QT</span><span class="o">.</span><span class="n">QCoreApplication</span><span class="o">.</span><span class="n">quit</span><span class="p">)</span>
+            <span class="n">QT</span><span class="o">.</span><span class="n">exec_</span><span class="p">()</span>
+            <span class="n">cothread</span><span class="o">.</span><span class="n">Yield</span><span class="p">(</span><span class="n">poll_interval</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;caught keyboard interrupt&#39;</span>
+
+
+<span class="c"># This is used by the _run_iqt timeout() function to avoid nested returns.</span>
+<span class="n">_global_timeout_depth</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">def</span> <span class="nf">_run_iqt</span><span class="p">(</span><span class="n">QT</span><span class="p">,</span> <span class="n">poll_interval</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">timeout</span><span class="p">():</span>
+        <span class="c"># To avoid nested returns from timeout (which effectively means we</span>
+        <span class="c"># would resume the main Qt thread from within a Qt message box -- not</span>
+        <span class="c"># a good idea!) we keep track of how many nested calls to timeout()</span>
+        <span class="c"># there are.  Then we refuse to return until we&#39;re at the top of the</span>
+        <span class="c"># stack.</span>
+        <span class="k">global</span> <span class="n">_global_timeout_depth</span>
+        <span class="n">_global_timeout_depth</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">timeout_depth</span> <span class="o">=</span> <span class="n">_global_timeout_depth</span>
+
+        <span class="n">cothread</span><span class="o">.</span><span class="n">Yield</span><span class="p">(</span><span class="n">poll_interval</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">_global_timeout_depth</span> <span class="o">&gt;</span> <span class="n">timeout_depth</span><span class="p">:</span>
+            <span class="n">cothread</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">poll_interval</span><span class="p">)</span>
+
+        <span class="n">_global_timeout_depth</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">at_exit</span><span class="p">():</span>
+        <span class="n">QT</span><span class="o">.</span><span class="n">QCoreApplication</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+        <span class="n">qt_done</span><span class="o">.</span><span class="n">Wait</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span> <span class="c"># Give up after five seconds if no response</span>
+
+    <span class="c"># Set up a timer so that Qt polls cothread.  All the timer needs to do</span>
+    <span class="c"># is to yield control to the coroutine system.</span>
+    <span class="n">timer</span> <span class="o">=</span> <span class="n">QT</span><span class="o">.</span><span class="n">QTimer</span><span class="p">()</span>
+    <span class="n">QT</span><span class="o">.</span><span class="n">QCoreApplication</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">timer</span><span class="p">,</span> <span class="n">QT</span><span class="o">.</span><span class="n">SIGNAL</span><span class="p">(</span><span class="s">&#39;timeout()&#39;</span><span class="p">),</span> <span class="n">timeout</span><span class="p">)</span>
+    <span class="n">timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">poll_interval</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span>
+
+    <span class="c"># To ensure we shut down cleanly a little delicacy is required before we</span>
+    <span class="c"># dive into the QT exec loop.</span>
+    <span class="c">#   First of all, we register an atexit method to tell Qt to quit on</span>
+    <span class="c"># program exit.  This enables Qt to do most of its cleaning up, and we</span>
+    <span class="c"># handshake with the Qt exit to ensure this completes.</span>
+    <span class="n">qt_done</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+    <span class="kn">import</span> <span class="nn">atexit</span>
+    <span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">at_exit</span><span class="p">)</span>
+
+    <span class="c"># Hand control over to Qt -- we&#39;ll now get it back through periodic calls</span>
+    <span class="c"># to timeout().</span>
+    <span class="n">QT</span><span class="o">.</span><span class="n">exec_</span><span class="p">()</span>
+    <span class="c"># This is a hack to hopefully eliminate the annoying message on exit:</span>
+    <span class="c">#   Mutex destroy failure: Device or resource busy</span>
+    <span class="n">QT</span><span class="o">.</span><span class="n">unlock</span><span class="p">()</span>
+    <span class="n">qt_done</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="iqt"><a class="viewcode-back" href="../../cothread.html#cothread.iqt">[docs]</a><span class="k">def</span> <span class="nf">iqt</span><span class="p">(</span><span class="n">poll_interval</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">use_timer</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">argv</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Installs Qt event handling hook.  The polling interval is in</span>
+<span class="sd">    seconds.&#39;&#39;&#39;</span>
+
+    <span class="c"># Unfortunately there are some annoying incompatibilities between the Qt3</span>
+    <span class="c"># and Qt4 interfaces.  This little class captures the fragments we need</span>
+    <span class="c"># from one or the other library in a common interface.</span>
+    <span class="k">class</span> <span class="nc">QT</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">PyQt4.QtCore</span> <span class="kn">import</span> <span class="n">QCoreApplication</span><span class="p">,</span> <span class="n">QTimer</span><span class="p">,</span> <span class="n">SIGNAL</span>
+            <span class="kn">from</span> <span class="nn">PyQt4.QtGui</span> <span class="kn">import</span> <span class="n">QApplication</span>
+
+            <span class="n">instance</span> <span class="o">=</span> <span class="n">QCoreApplication</span><span class="o">.</span><span class="n">instance</span>
+            <span class="n">exec_</span> <span class="o">=</span> <span class="n">QCoreApplication</span><span class="o">.</span><span class="n">exec_</span>
+
+            <span class="nd">@classmethod</span>
+            <span class="k">def</span> <span class="nf">unlock</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>    <span class="k">pass</span>
+
+            <span class="c"># Remove the PyQt input hook, which messes us up!</span>
+            <span class="kn">from</span> <span class="nn">PyQt4</span> <span class="kn">import</span> <span class="n">QtCore</span>
+            <span class="n">QtCore</span><span class="o">.</span><span class="n">pyqtRemoveInputHook</span><span class="p">()</span>
+            <span class="n">_install_readline_hook</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">qt</span>
+            <span class="kn">from</span> <span class="nn">qt</span> <span class="kn">import</span> <span class="n">SIGNAL</span><span class="p">,</span> <span class="n">QTimer</span><span class="p">,</span> <span class="n">QApplication</span>
+            <span class="n">QCoreApplication</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">qApp</span>
+
+            <span class="nd">@classmethod</span>
+            <span class="k">def</span> <span class="nf">instance</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">QCoreApplication</span>
+
+            <span class="n">exec_</span> <span class="o">=</span> <span class="n">QCoreApplication</span><span class="o">.</span><span class="n">exec_loop</span>
+            <span class="n">unlock</span> <span class="o">=</span> <span class="n">QCoreApplication</span><span class="o">.</span><span class="n">unlock</span>
+
+    <span class="k">global</span> <span class="n">_qapp</span>
+    <span class="k">assert</span> <span class="n">QT</span><span class="o">.</span><span class="n">QCoreApplication</span><span class="o">.</span><span class="n">startingUp</span><span class="p">(),</span> \
+        <span class="s">&#39;Must use iqt() to create initial QApplication object.&#39;</span>
+    <span class="n">_qapp</span> <span class="o">=</span> <span class="n">QT</span><span class="o">.</span><span class="n">QApplication</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+
+    <span class="n">QT</span><span class="o">.</span><span class="n">QCoreApplication</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="n">QT</span><span class="o">.</span><span class="n">instance</span><span class="p">(),</span> <span class="n">QT</span><span class="o">.</span><span class="n">SIGNAL</span><span class="p">(</span><span class="s">&#39;lastWindowClosed()&#39;</span><span class="p">),</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Quit</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_timer</span><span class="p">:</span>
+        <span class="n">iqt_thread</span> <span class="o">=</span> <span class="n">_run_iqt</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">iqt_thread</span> <span class="o">=</span> <span class="n">_poll_iqt</span>
+    <span class="n">cothread</span><span class="o">.</span><span class="n">Spawn</span><span class="p">(</span><span class="n">iqt_thread</span><span class="p">,</span>  <span class="n">QT</span><span class="p">,</span> <span class="n">poll_interval</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">=</span> <span class="n">QT_STACK_SIZE</span><span class="p">)</span>
+    <span class="n">cothread</span><span class="o">.</span><span class="n">Yield</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">_qapp</span>
+
+
+<span class="c"># Automatically install the readline hook.  This is the safest thing to do.</span></div>
+<span class="n">_install_readline_hook</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Cothread  documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Michael Abbott.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>

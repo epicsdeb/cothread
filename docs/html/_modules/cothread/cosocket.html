@@ -1,0 +1,240 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>cothread.cosocket &mdash; Cothread  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Cothread  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Cothread  documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for cothread.cosocket</h1><div class="highlight"><pre>
+<span class="c"># This file is part of the Diamond cothread library.</span>
+<span class="c">#</span>
+<span class="c"># Copyright (C) 2011 Michael Abbott, Diamond Light Source Ltd.</span>
+<span class="c">#</span>
+<span class="c"># The Diamond cothread library is free software; you can redistribute it</span>
+<span class="c"># and/or modify it under the terms of the GNU General Public License as</span>
+<span class="c"># published by the Free Software Foundation; either version 2 of the License,</span>
+<span class="c"># or (at your option) any later version.</span>
+<span class="c">#</span>
+<span class="c"># The Diamond cothread library is distributed in the hope that it will be</span>
+<span class="c"># useful, but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General</span>
+<span class="c"># Public License for more details.</span>
+<span class="c">#</span>
+<span class="c"># You should have received a copy of the GNU General Public License along</span>
+<span class="c"># with this program; if not, write to the Free Software Foundation, Inc., 51</span>
+<span class="c"># Franklin St, Fifth Floor, Boston, MA 02110-1301 USA</span>
+<span class="c">#</span>
+<span class="c"># Contact:</span>
+<span class="c">#      Dr. Michael Abbott,</span>
+<span class="c">#      Diamond Light Source Ltd,</span>
+<span class="c">#      Diamond House,</span>
+<span class="c">#      Chilton,</span>
+<span class="c">#      Didcot,</span>
+<span class="c">#      Oxfordshire,</span>
+<span class="c">#      OX11 0DE</span>
+<span class="c">#      michael.abbott@diamond.ac.uk</span>
+
+<span class="sd">&#39;&#39;&#39;Support for cooperative sockets.  Replaces the functionality of the</span>
+<span class="sd">standard socket module.&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+
+<span class="kn">import</span> <span class="nn">coselect</span>
+<span class="kn">import</span> <span class="nn">socket</span> <span class="kn">as</span> <span class="nn">_socket</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;socket&#39;</span><span class="p">,</span> <span class="s">&#39;socket_hook&#39;</span><span class="p">]</span>
+
+
+<span class="c"># We need to hang onto this so we can create the real thing when necessary, even</span>
+<span class="c"># after socket_hook() has been called.</span>
+<span class="n">_socket_socket</span> <span class="o">=</span> <span class="n">_socket</span><span class="o">.</span><span class="n">socket</span>
+
+
+<div class="viewcode-block" id="socket_hook"><a class="viewcode-back" href="../../cothread.html#cothread.socket_hook">[docs]</a><span class="k">def</span> <span class="nf">socket_hook</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;Replaces the blocking methods in the socket module with the non-blocking</span>
+<span class="sd">    methods implemented here.  Not safe to call if other threads need the</span>
+<span class="sd">    original methods.&#39;&#39;&#39;</span>
+    <span class="n">_socket</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">socket</span>
+
+</div>
+<div class="viewcode-block" id="socket"><a class="viewcode-back" href="../../cothread.html#cothread.socket">[docs]</a><span class="k">class</span> <span class="nc">socket</span><span class="p">:</span>
+    <span class="n">__doc__</span> <span class="o">=</span> <span class="n">_socket_socket</span><span class="o">.</span><span class="n">__doc__</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">family</span><span class="o">=</span><span class="n">_socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">_socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="n">proto</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">_sock</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">_sock</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">_sock</span> <span class="o">=</span> <span class="n">_socket_socket</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="n">proto</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span> <span class="o">=</span> <span class="n">_sock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">setblocking</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__timeout</span> <span class="o">=</span> <span class="n">_socket</span><span class="o">.</span><span class="n">getdefaulttimeout</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="c"># Delegate all attributes we&#39;ve not defined to the underlying socket.</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__timeout</span> <span class="o">=</span> <span class="n">timeout</span>
+
+    <span class="k">def</span> <span class="nf">gettimeout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__timeout</span>
+
+    <span class="k">def</span> <span class="nf">setblocking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">):</span>
+        <span class="c"># Non blocking connection is a trifle delicate: we fail straightaway</span>
+        <span class="c"># with EINPROGRESS, and then need to wait for connection to complete</span>
+        <span class="c"># before discovering the true result.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">_socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINPROGRESS</span><span class="p">:</span>
+                <span class="k">raise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__poll</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLOUT</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getsockopt</span><span class="p">(</span><span class="n">_socket</span><span class="o">.</span><span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">_socket</span><span class="o">.</span><span class="n">SO_ERROR</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_socket</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">strerror</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">connect_ex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">except</span> <span class="n">_socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">error</span><span class="o">.</span><span class="n">errno</span>
+
+
+    <span class="k">def</span> <span class="nf">__poll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coselect</span><span class="o">.</span><span class="n">poll_list</span><span class="p">([(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__timeout</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">_socket</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">errno</span><span class="o">.</span><span class="n">ETIMEDOUT</span><span class="p">,</span> <span class="s">&#39;Timeout waiting for socket&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__retry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poll</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">action</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">_socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EAGAIN</span><span class="p">:</span>
+                    <span class="k">raise</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__poll</span><span class="p">(</span><span class="n">poll</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sock</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLIN</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">accept</span><span class="p">,</span> <span class="p">())</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">socket</span><span class="p">(</span><span class="n">_sock</span> <span class="o">=</span> <span class="n">sock</span><span class="p">),</span> <span class="n">addr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">recv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLIN</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">recv</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">recvfrom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLIN</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">recvfrom</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">recvfrom_into</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLIN</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">recvfrom_into</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">recv_into</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLIN</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">recv_into</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLOUT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">send</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sendto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__retry</span><span class="p">(</span><span class="n">coselect</span><span class="o">.</span><span class="n">POLLOUT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__socket</span><span class="o">.</span><span class="n">sendto</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sendall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">flags</span><span class="p">):</span>
+        <span class="n">sent</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">sent</span> <span class="o">&lt;</span> <span class="n">length</span><span class="p">:</span>
+            <span class="n">sent</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">sent</span><span class="p">:],</span> <span class="o">*</span><span class="n">flags</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Cothread  documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Michael Abbott.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>
