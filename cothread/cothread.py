@@ -95,6 +95,9 @@ __all__ = [
     'WaitForAll',       # Wait for all events to become ready
 
     'AbsTimeout',       # Converts timeout into absolute deadline format
+    'GetDeadline',      # Returns deadline associated with timeout
+    'Deadline',         # Converts deadline into timeout format
+
     'Timedout',         # Timeout exception raised by event waiting
 
     'Quit',             # Immediate process quit
@@ -532,12 +535,19 @@ def AbsTimeout(timeout):
     else:
         return (timeout + time.time(),)
 
-def Deadline(timeout):
-    '''Converts a timeout into a deadline.'''
+def GetDeadline(timeout):
+    '''Returns the deadline associated with the given timeout, or None if there
+    is no deadline.'''
     if timeout is None:
         return None
+    elif isinstance(timeout, tuple):
+        return timeout[0]
     else:
-        return AbsTimeout(timeout)[0]
+        return timeout + time.time()
+
+def Deadline(deadline):
+    '''Converts a deadline into a timeout.'''
+    return (deadline,)
 
 
 class EventBase(object):
@@ -554,13 +564,10 @@ class EventBase(object):
     def _WaitUntil(self, timeout):
         '''Suspends the calling task until _Wakeup() is called.  Raises an
         exception if a timeout occurs first.'''
-        deadline = Deadline(timeout)
-        # If the deadline has already expired don't call into the scheduler:
-        # as a matter of policy, we don't lose control in this case.
-        # Otherwise the scheduler will tell us if we've timed out.
+        # If the event object is not ready we always yield control to ensure
+        # that other ready cothreads get the opportunity to run.
         _validate_thread()
-        if (deadline is not None and time.time() >= deadline) or \
-                _scheduler.wait_until(deadline, self.__wait_queue, None):
+        if _scheduler.wait_until(GetDeadline(timeout), self.__wait_queue, None):
             raise Timedout('Timed out waiting for event')
 
     def _Wakeup(self, wake_all):
@@ -574,6 +581,7 @@ class EventBase(object):
             self.__wait_abort -= 1
             return False
         else:
+            self.__wait_abort = 0
             self.__wait_queue.wake(wake_all)
             return True
 
@@ -625,11 +633,15 @@ class Spawn(EventBase):
                     'raised uncaught exception'
                 traceback.print_exc()
                 self.__result = (True, None)
-        if not self._Wakeup(True):
+        if not self._Wakeup(False):
             # Aborted wakeup: consume the result now
             del self.__result
         # See wait_until() for an explanation of this return value.
         return []
+
+    def __nonzero__(self):
+        '''Tests whether the event is signalled.'''
+        return bool(self.__result)
 
     def Wait(self, timeout = None):
         '''Waits until the task has completed.  May raise an exception if the
@@ -638,18 +650,20 @@ class Spawn(EventBase):
         if not self.__result:
             self._WaitUntil(timeout)
         ok, result = self.__result
-        # Delete the result before returning to avoid cycles: in particular,
-        # if the result is an exception the associated traceback needs to be
-        # dropped now.
-        del self.__result
         if ok:
             return result
         else:
-            # Re-raise the exception that actually killed the task here where
-            # it can be received by whoever waits on the task.
-            # There's a real reference count looping problem here -- can't
-            # make the task go away when it's finished with...
-            raise result[0], result[1], result[2]
+            try:
+                # Re-raise the exception that actually killed the task here
+                # where it can be received by whoever waits on the task.
+                raise result[0], result[1], result[2]
+            finally:
+                # In this case result and self.__result contain a traceback.  To
+                # avoid circular references which will delay garbage collection,
+                # ensure these variables are deleted before the exception is
+                # caught.
+                del self.__result
+                del result
 
     def AbortWait(self):
         '''Called instead of performing a proper wait to release any resources
@@ -830,44 +844,59 @@ class ThreadedEventQueue(object):
 class Timer(object):
     '''A cancellable one-shot or auto-retriggering timer.'''
 
-    def __init__(self, timeout, callback, retrigger = False, stack_size = 0):
-        '''The callback will be called after the specified timeout.  If
-        retrigger is set then the timer will automatically retrigger until
-        it is cancelled.'''
+    def __init__(self, timeout, callback,
+            retrigger = False, reuse = False, stack_size = 0):
+        '''The callback will be called (with no argumentes) after the specified
+        timeout.  If retrigger is set then the timer will automatically
+        retrigger until it is cancelled.  Unless reuse or retrigger is set the
+        timer will be cancelled once it fires and cannot be reused.'''
         assert callable(callback), 'Ensure the callback is callable'
         self.__timeout = timeout
         self.__callback = callback
-        self.__retrigger = retrigger
-        self.__cancel = Event(auto_reset = False)
+        self.__retrigger = retrigger        # Auto retrigger on each timeout
+        self.__reuse = reuse or retrigger   # Keep timer alive
+        self.__control = Event()            # Used to control main loop
+        self.__fire = True                  # False if control event pending
         Spawn(self.__timer, stack_size = stack_size)
 
     def __timer(self):
-        while True:
+        running = True
+        while running:
             try:
-                self.__cancel.Wait(self.__timeout)
+                self.__control.Wait(self.__timeout)
             except Timedout:
-                # There can be a race between cancelling and timing out:
-                # ensure that if we were cancelled before being fired we do
-                # nothing.
-                if self.__cancel:
-                    return
-                self.__callback()
-            if not self.__retrigger:
-                return
+                if self.__fire:
+                    if not self.__retrigger:
+                        # Unless we're automatically retriggering, any new
+                        # timeout has to be specified anew.
+                        self.__timeout = None
+                    self.__callback()
+            else:
+                self.__fire = True      # We've seen the control event
+
+            running = self.__reuse
+
+        del self.__callback     # Try to avoid reference loops
 
     def cancel(self):
         '''Cancels the timer: the timer is guaranteed not to fire once this
-        call has been made.'''
-        self.__retrigger = False
-        self.__cancel.Signal()
-        del self.__callback
+        call has been made.  A cancelled timer cannot be reset.'''
+        self.__reuse = False
 
-    def reset(self, timeout = None, retrigger = False):
-        '''Resets the timer.  If it hasn't fired yet then the timeout is reset
-        to the given timeout (or its original timeout by default).  ???
-        '''
-        assert False, 'Got to write this yet...'
+        self.__fire = False
+        self.__control.Signal()
 
+    def reset(self, timeout, retrigger=None):
+        '''Resets the timer.  The timeout is reset to the given timeout and the
+        timer is restarted.  A timeout of None can be used to temporarily
+        suspend a timer.'''
+        assert self.__reuse, 'Cannot reuse this timer'
+        self.__timeout = timeout
+        if retrigger is not None:
+            self.__retrigger = retrigger
+
+        self.__fire = False
+        self.__control.Signal()
 
 
 def WaitForAll(event_list, timeout = None):
@@ -914,18 +943,17 @@ def Quit():
     _QuitEvent.Signal()
 
 def WaitForQuit(catch_interrupt = True):
-    '''Waits for the quit event to be signalled.'''
-    try:
-        _QuitEvent.Wait()
-    except KeyboardInterrupt:
-        if catch_interrupt:
-            # As a courtesy we quietly catch and discard the keyboard
-            # interrupt.  Unfortunately we don't have full control over where
-            # this is going to be caught, but if we get it we can exit
-            # quietly.
-            pass
-        else:
-            raise
+    '''Waits for the quit event to be signalled.  If catch_interrupt is True
+    then control-C will only signal the quit event and will not generate an
+    exception; this does mean that the only way to interrupt a misbehaving loop
+    is to use another signal such as SIGQUIT (C-\)'''
+    if catch_interrupt:
+        import signal
+        def quit(signum, frame):
+            _QuitEvent.Signal()
+        signal.signal(signal.SIGINT, quit)
+
+    _QuitEvent.Wait()
 
 
 # There is only the one scheduler, which we create right away.  A dedicated
@@ -944,18 +972,18 @@ def _validate_thread():
 
 
 def SleepUntil(deadline):
-    '''Sleep until the specified deadline.  Note that if the deadline has
-    already passed then no yield of control will occur.'''
+    '''Sleep until the specified deadline.  Control will always be yielded,
+    even if the timeout has already passed.'''
     _validate_thread()
     _scheduler.wait_until(deadline, None, None)
 
 def Sleep(timeout):
     '''Sleep until the specified timeout has expired.'''
-    SleepUntil(Deadline(timeout))
+    SleepUntil(GetDeadline(timeout))
 
 def Yield(timeout = 0):
     '''Hands control back to the scheduler.  Control is returned either after
     the specified timeout has passed, or as soon as there are no active jobs
     waiting to be run.'''
     _validate_thread()
-    _scheduler.do_yield(Deadline(timeout))
+    _scheduler.do_yield(GetDeadline(timeout))
