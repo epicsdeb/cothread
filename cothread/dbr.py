@@ -151,7 +151,7 @@ class ca_float(float):
 
 
 # The EPICS epoch begins 1st January 1990.
-EPICS_epoch = int(time.mktime((1990, 1, 1, 0, 0, 0, 0, 0, 0)))
+EPICS_epoch = 631152000             # Seconds from 1970 to 1990
 
 
 class ca_timestamp(ctypes.Structure):
