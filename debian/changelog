@@ -1,3 +1,9 @@
+cothread (2.2-2) unstable; urgency=low
+
+  * fix incorrect conversion of epics time to posix time
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Tue, 14 Feb 2012 16:46:35 -0500
+
 cothread (2.2-1) unstable; urgency=low
 
   * New upstream release
