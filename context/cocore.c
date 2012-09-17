@@ -1,6 +1,6 @@
 /* This file is part of the Diamond cothread library.
  *
- * Copyright (C) 2010 Michael Abbott, Diamond Light Source Ltd.
+ * Copyright (C) 2010-2012 Michael Abbott, Diamond Light Source Ltd.
  *
  * The Diamond cothread library is free software; you can redistribute it
  * and/or modify it under the terms of the GNU General Public License as
@@ -131,7 +131,7 @@ static void save_frame(struct cocore *target)
         frame_size = 0;
     else
     {
-        if (frame_size > target->max_saved_length)
+        if ((size_t) frame_size > target->max_saved_length)
         {
             /* Ensure we have enough room for the required save area. */
             free(target->saved_frame);

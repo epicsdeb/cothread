@@ -43,11 +43,11 @@ control-C::
     caput('PV1', 1234)
 
     # Print out the value reported by PV2.
-    print caget('PV2')
+    print(caget('PV2'))
 
     # Monitor PV3, printing out each update as it is received.
     def callback(value):
-        print 'callback', value
+        print('callback', value)
     camonitor('PV3', callback)
 
     # Now run the camonitor process until interrupted by Ctrl-C.
@@ -61,7 +61,7 @@ The following details are general to all cothread applications.
   required at the start of any catools application::
 
     from pkg_resources import require
-    require('cothread==2.1')
+    require('cothread==2.6')
 
   or if the most recent version is ok then the version number can be omitted as
   in the example.
@@ -256,7 +256,7 @@ Functions
     as a scalar, otherwise as a numpy array.
 
 
-..  function:: camonitor(pvs, callback, events=DBE_VALUE, datatype=None, \
+..  function:: camonitor(pvs, callback, events=None, datatype=None, \
         format=FORMAT_RAW, count=0, all_updates=False, notify_disconnect=False)
 
     Creates a subscription to one or more PVs, returning a subscription
@@ -296,6 +296,17 @@ Functions
         DBE_PROPERTY   Notify property changes
                        (on 3.14.11 and later servers)
         ============== ==============================================
+
+        If `events` is not specified then the default value depends on the value
+        selected for `format` as follows:
+
+        ==============  =============================================
+        `format`        Default value for `events`
+        ==============  =============================================
+        FORMAT_RAW      DBE_VALUE
+        FORMAT_TIME     DBE_VALUE | DBE_ALARM
+        FORMAT_CTRL     DBE_VALUE | DBE_ALARM | DBE_PROPERTY
+        ==============  =============================================
 
     `datatype`, `format`, `count`
         See documentation for :ref:`Augmented` below.
@@ -501,11 +512,22 @@ used to control the type of the data returned:
 
     4.  Any :class:`numpy.dtype` compatible with any of the above values.
 
-    5.  The special value :const:`DBR_CHAR_STR`.  This is used to request a
-        char array which is then converted to a Python string on receipt.  It
-        is not sensible to specify `count` with this option.
+    5.  One of the special values :const:`DBR_CHAR_STR` or
+        :const:`DBR_CHAR_UNICODE`.  This is used to request a char array which
+        is then converted to a Python string or Unicode string on receipt.  It
+        is not sensible to specify `count` with this option.  The option
+        :const:`DBR_CHAR_UNICODE` is meaningless and not supported
+        for :func:`caput`.
 
-    6.  For :func:`caget` and :func:`camonitor` two further special values are
+        Note that if the PV name ends in ``$`` and `datatype` is not specified
+        then :const:`DBR_CHAR_STR` will be used.
+
+    6.  The special value :const:`DBR_ENUM_STR`, only for :func:`caget` and
+        :func:`camonitor`.  In this case the "native" channel datatype is used
+        unless the channel is an enumeration, in which case the corresponding
+        string is returned.
+
+    7.  For :func:`caget` and :func:`camonitor` two further special values are
         supported.  In both of these cases `format` is ignored:
 
         ..  data:: DBR_STSACK_STRING
@@ -610,12 +632,22 @@ specified.
     the nearest microsecond: for nanosecond precision use :attr:`.raw_stamp`
     instead.
 
-    To compute the timestamp in :class:`datetime` format, which can be more
-    suitable for display applications, it can be added to the value by
-    computing::
+..  attribute:: .datetime
 
-        import datetime
-        value.datetime = datetime.datetime.fromtimestamp(value.timestamp)
+    This is a dynamic property which returns :attr:`timestamp` as a
+    :class:`datetime` value by computing ::
+
+        datetime.datetime.fromtimestamp(value.timestamp)
+
+    from the :attr:`timestamp` attribute.  This calculation takes local time
+    into account.
+
+    ..  note::
+
+        This is an incompatible change from cothread version 2.3 and earlier.
+        In earlier versions this field did not exist but could be assigned to,
+        in this release :attr:`datetime` is a read-only property which cannot
+        be assigned to.
 
 
 The following fields are present in all values if :const:`FORMAT_TIME` or
@@ -625,10 +657,12 @@ The following fields are present in all values if :const:`FORMAT_TIME` or
 
     EPICS alarm severity, normally one of the values listed below.
 
-    0 => No alarm
-    1 => Alarm condition, minor severity
-    2 => Alarm condition, major severity.
-    3 => Invalid value.
+    =  ==================================
+    0  No alarm
+    1  Alarm condition, minor severity
+    2  Alarm condition, major severity.
+    3  Invalid value.
+    =  ==================================
 
 ..  attribute:: .status
 

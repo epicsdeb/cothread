@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007-2010 Michael Abbott, Diamond Light Source Ltd.
+# Copyright (C) 2007-2012 Michael Abbott, Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -29,7 +29,8 @@
 '''Support for cooperative select functions.  Replaces the functionality of
 the standard select module.'''
 
-import time
+from __future__ import absolute_import
+
 import select as _select
 import cothread
 
@@ -55,10 +56,6 @@ __all__ = [
     'select_hook',      # Replaces select methods
 ]
 
-# Pick up copies of the select methods we might modify when hooking.
-_select_select = _select.select
-_select_poll = _select.poll
-
 
 def select_hook():
     '''Replaces the blocking methods in the select module with the non-blocking
@@ -71,7 +68,7 @@ def select_hook():
 # A helpful routine to ensure that our select() behaves as much as possible
 # like the real thing!
 def _AsFileDescriptor(file):
-    if isinstance(file, int) or isinstance(file, long):
+    if isinstance(file, (int, long)):
         return file
     else:
         return file.fileno()
@@ -166,8 +163,10 @@ def poll_block_select(poll_list, timeout = None):
     return result.items()
 
 
+_select_select = _select.select     # Keep a copy of original select for hooking
 import platform as _platform
 if hasattr(_select, 'poll'):
+    _select_poll = _select.poll     # Similarly get copy of original poll
     if _platform.system() == 'Darwin':
         # Unfortunately it would appear that Apple's implementation of the
         # poll() system call is incomplete: it returns POLLNVAL for devices!
@@ -231,7 +230,7 @@ class _Poller(object):
         if events:
             # We're interested!  Record the event flag and wake our task.
             self.__ready_list[file] = self.__ready_list.get(file, 0) | events
-            self.wakeup.wakeup(cothread._WAKEUP_NORMAL)
+            self.wakeup.wakeup(cothread.cothread._WAKEUP_NORMAL)
         # Return the events we've actually consumed here.  The extra events
         # don't count, as everybody gets those.
         return events & ~POLLEXTRA
@@ -250,7 +249,8 @@ def poll_list(event_list, timeout = None):
     signals a selected event (or any event from HUP, ERR, NVAL) or until
     the timeout (in seconds) occurs.'''
     poller = _Poller(event_list)
-    cothread._scheduler.poll_until(poller, cothread.GetDeadline(timeout))
+    cothread.cothread._scheduler.poll_until(
+        poller, cothread.cothread.GetDeadline(timeout))
     return poller.ready_list()
 
 

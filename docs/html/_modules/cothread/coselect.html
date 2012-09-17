@@ -51,7 +51,7 @@
   <h1>Source code for cothread.coselect</h1><div class="highlight"><pre>
 <span class="c"># This file is part of the Diamond cothread library.</span>
 <span class="c">#</span>
-<span class="c"># Copyright (C) 2007-2010 Michael Abbott, Diamond Light Source Ltd.</span>
+<span class="c"># Copyright (C) 2007-2012 Michael Abbott, Diamond Light Source Ltd.</span>
 <span class="c">#</span>
 <span class="c"># The Diamond cothread library is free software; you can redistribute it</span>
 <span class="c"># and/or modify it under the terms of the GNU General Public License as</span>
@@ -80,7 +80,8 @@
 <span class="sd">&#39;&#39;&#39;Support for cooperative select functions.  Replaces the functionality of</span>
 <span class="sd">the standard select module.&#39;&#39;&#39;</span>
 
-<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+
 <span class="kn">import</span> <span class="nn">select</span> <span class="kn">as</span> <span class="nn">_select</span>
 <span class="kn">import</span> <span class="nn">cothread</span>
 
@@ -106,10 +107,6 @@
     <span class="s">&#39;select_hook&#39;</span><span class="p">,</span>      <span class="c"># Replaces select methods</span>
 <span class="p">]</span>
 
-<span class="c"># Pick up copies of the select methods we might modify when hooking.</span>
-<span class="n">_select_select</span> <span class="o">=</span> <span class="n">_select</span><span class="o">.</span><span class="n">select</span>
-<span class="n">_select_poll</span> <span class="o">=</span> <span class="n">_select</span><span class="o">.</span><span class="n">poll</span>
-
 
 <div class="viewcode-block" id="select_hook"><a class="viewcode-back" href="../../cothread.html#cothread.select_hook">[docs]</a><span class="k">def</span> <span class="nf">select_hook</span><span class="p">():</span>
     <span class="sd">&#39;&#39;&#39;Replaces the blocking methods in the select module with the non-blocking</span>
@@ -122,7 +119,7 @@
 <span class="c"># A helpful routine to ensure that our select() behaves as much as possible</span>
 <span class="c"># like the real thing!</span></div>
 <span class="k">def</span> <span class="nf">_AsFileDescriptor</span><span class="p">(</span><span class="nb">file</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="nb">long</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
         <span class="k">return</span> <span class="nb">file</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">file</span><span class="o">.</span><span class="n">fileno</span><span class="p">()</span>
@@ -217,8 +214,10 @@
     <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
 
 
+<span class="n">_select_select</span> <span class="o">=</span> <span class="n">_select</span><span class="o">.</span><span class="n">select</span>     <span class="c"># Keep a copy of original select for hooking</span>
 <span class="kn">import</span> <span class="nn">platform</span> <span class="kn">as</span> <span class="nn">_platform</span>
 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_select</span><span class="p">,</span> <span class="s">&#39;poll&#39;</span><span class="p">):</span>
+    <span class="n">_select_poll</span> <span class="o">=</span> <span class="n">_select</span><span class="o">.</span><span class="n">poll</span>     <span class="c"># Similarly get copy of original poll</span>
     <span class="k">if</span> <span class="n">_platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;Darwin&#39;</span><span class="p">:</span>
         <span class="c"># Unfortunately it would appear that Apple&#39;s implementation of the</span>
         <span class="c"># poll() system call is incomplete: it returns POLLNVAL for devices!</span>
@@ -282,7 +281,7 @@
         <span class="k">if</span> <span class="n">events</span><span class="p">:</span>
             <span class="c"># We&#39;re interested!  Record the event flag and wake our task.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__ready_list</span><span class="p">[</span><span class="nb">file</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ready_list</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="n">events</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">wakeup</span><span class="o">.</span><span class="n">wakeup</span><span class="p">(</span><span class="n">cothread</span><span class="o">.</span><span class="n">_WAKEUP_NORMAL</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wakeup</span><span class="o">.</span><span class="n">wakeup</span><span class="p">(</span><span class="n">cothread</span><span class="o">.</span><span class="n">cothread</span><span class="o">.</span><span class="n">_WAKEUP_NORMAL</span><span class="p">)</span>
         <span class="c"># Return the events we&#39;ve actually consumed here.  The extra events</span>
         <span class="c"># don&#39;t count, as everybody gets those.</span>
         <span class="k">return</span> <span class="n">events</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">POLLEXTRA</span>
@@ -301,7 +300,8 @@
 <span class="sd">    signals a selected event (or any event from HUP, ERR, NVAL) or until</span>
 <span class="sd">    the timeout (in seconds) occurs.&#39;&#39;&#39;</span>
     <span class="n">poller</span> <span class="o">=</span> <span class="n">_Poller</span><span class="p">(</span><span class="n">event_list</span><span class="p">)</span>
-    <span class="n">cothread</span><span class="o">.</span><span class="n">_scheduler</span><span class="o">.</span><span class="n">poll_until</span><span class="p">(</span><span class="n">poller</span><span class="p">,</span> <span class="n">cothread</span><span class="o">.</span><span class="n">GetDeadline</span><span class="p">(</span><span class="n">timeout</span><span class="p">))</span>
+    <span class="n">cothread</span><span class="o">.</span><span class="n">cothread</span><span class="o">.</span><span class="n">_scheduler</span><span class="o">.</span><span class="n">poll_until</span><span class="p">(</span>
+        <span class="n">poller</span><span class="p">,</span> <span class="n">cothread</span><span class="o">.</span><span class="n">cothread</span><span class="o">.</span><span class="n">GetDeadline</span><span class="p">(</span><span class="n">timeout</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">poller</span><span class="o">.</span><span class="n">ready_list</span><span class="p">()</span>
 
 </div>

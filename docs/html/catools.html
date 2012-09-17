@@ -86,11 +86,11 @@ control-C:</p>
 <span class="n">caput</span><span class="p">(</span><span class="s">&#39;PV1&#39;</span><span class="p">,</span> <span class="mi">1234</span><span class="p">)</span>
 
 <span class="c"># Print out the value reported by PV2.</span>
-<span class="k">print</span> <span class="n">caget</span><span class="p">(</span><span class="s">&#39;PV2&#39;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">caget</span><span class="p">(</span><span class="s">&#39;PV2&#39;</span><span class="p">))</span>
 
 <span class="c"># Monitor PV3, printing out each update as it is received.</span>
 <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-    <span class="k">print</span> <span class="s">&#39;callback&#39;</span><span class="p">,</span> <span class="n">value</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;callback&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 <span class="n">camonitor</span><span class="p">(</span><span class="s">&#39;PV3&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
 
 <span class="c"># Now run the camonitor process until interrupted by Ctrl-C.</span>
@@ -103,7 +103,7 @@ control-C:</p>
 particular version of the library to use, thus the following lines are
 required at the start of any catools application:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">require</span>
-<span class="n">require</span><span class="p">(</span><span class="s">&#39;cothread==2.1&#39;</span><span class="p">)</span>
+<span class="n">require</span><span class="p">(</span><span class="s">&#39;cothread==2.6&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>or if the most recent version is ok then the version number can be omitted as
@@ -272,7 +272,7 @@ as a scalar, otherwise as a numpy array.</p>
 
 <dl class="function">
 <dt id="cothread.catools.camonitor">
-<tt class="descclassname">cothread.catools.</tt><tt class="descname">camonitor</tt><big>(</big><em>pvs</em>, <em>callback</em>, <em>events=DBE_VALUE</em>, <em>datatype=None</em>, <em>format=FORMAT_RAW</em>, <em>count=0</em>, <em>all_updates=False</em>, <em>notify_disconnect=False</em><big>)</big><a class="reference internal" href="_modules/cothread/catools.html#camonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cothread.catools.camonitor" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">cothread.catools.</tt><tt class="descname">camonitor</tt><big>(</big><em>pvs</em>, <em>callback</em>, <em>events=None</em>, <em>datatype=None</em>, <em>format=FORMAT_RAW</em>, <em>count=0</em>, <em>all_updates=False</em>, <em>notify_disconnect=False</em><big>)</big><a class="reference internal" href="_modules/cothread/catools.html#camonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cothread.catools.camonitor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a subscription to one or more PVs, returning a subscription
 object for each PV.  If a single PV is given then a single subscription
 object is returned, otherwise a list of subscriptions is returned.</p>
@@ -297,7 +297,7 @@ generating this update.  The values passed to <cite>callback</cite> are
 <dt><cite>events</cite></dt>
 <dd><p class="first">This identifies the type of update which will be notified.  A
 bit-wise or of any the following are possible:</p>
-<table border="1" class="last docutils">
+<table border="1" class="docutils">
 <colgroup>
 <col width="23%" />
 <col width="77%" />
@@ -320,6 +320,30 @@ bit-wise or of any the following are possible:</p>
 <tr class="row-odd"><td>DBE_PROPERTY</td>
 <td>Notify property changes
 (on 3.14.11 and later servers)</td>
+</tr>
+</tbody>
+</table>
+<p>If <cite>events</cite> is not specified then the default value depends on the value
+selected for <cite>format</cite> as follows:</p>
+<table border="1" class="last docutils">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><cite>format</cite></th>
+<th class="head">Default value for <cite>events</cite></th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>FORMAT_RAW</td>
+<td>DBE_VALUE</td>
+</tr>
+<tr class="row-odd"><td>FORMAT_TIME</td>
+<td>DBE_VALUE | DBE_ALARM</td>
+</tr>
+<tr class="row-even"><td>FORMAT_CTRL</td>
+<td>DBE_VALUE | DBE_ALARM | DBE_PROPERTY</td>
 </tr>
 </tbody>
 </table>
@@ -550,9 +574,19 @@ respectively.</p>
 </li>
 <li><p class="first">Any <tt class="xref py py-class docutils literal"><span class="pre">numpy.dtype</span></tt> compatible with any of the above values.</p>
 </li>
-<li><p class="first">The special value <tt class="xref py py-const docutils literal"><span class="pre">DBR_CHAR_STR</span></tt>.  This is used to request a
-char array which is then converted to a Python string on receipt.  It
-is not sensible to specify <cite>count</cite> with this option.</p>
+<li><p class="first">One of the special values <tt class="xref py py-const docutils literal"><span class="pre">DBR_CHAR_STR</span></tt> or
+<tt class="xref py py-const docutils literal"><span class="pre">DBR_CHAR_UNICODE</span></tt>.  This is used to request a char array which
+is then converted to a Python string or Unicode string on receipt.  It
+is not sensible to specify <cite>count</cite> with this option.  The option
+<tt class="xref py py-const docutils literal"><span class="pre">DBR_CHAR_UNICODE</span></tt> is meaningless and not supported
+for <a class="reference internal" href="#cothread.catools.caput" title="cothread.catools.caput"><tt class="xref py py-func docutils literal"><span class="pre">caput()</span></tt></a>.</p>
+<p>Note that if the PV name ends in <tt class="docutils literal"><span class="pre">$</span></tt> and <cite>datatype</cite> is not specified
+then <tt class="xref py py-const docutils literal"><span class="pre">DBR_CHAR_STR</span></tt> will be used.</p>
+</li>
+<li><p class="first">The special value <tt class="xref py py-const docutils literal"><span class="pre">DBR_ENUM_STR</span></tt>, only for <a class="reference internal" href="#cothread.catools.caget" title="cothread.catools.caget"><tt class="xref py py-func docutils literal"><span class="pre">caget()</span></tt></a> and
+<a class="reference internal" href="#cothread.catools.camonitor" title="cothread.catools.camonitor"><tt class="xref py py-func docutils literal"><span class="pre">camonitor()</span></tt></a>.  In this case the &#8220;native&#8221; channel datatype is used
+unless the channel is an enumeration, in which case the corresponding
+string is returned.</p>
 </li>
 <li><p class="first">For <a class="reference internal" href="#cothread.catools.caget" title="cothread.catools.caget"><tt class="xref py py-func docutils literal"><span class="pre">caget()</span></tt></a> and <a class="reference internal" href="#cothread.catools.camonitor" title="cothread.catools.camonitor"><tt class="xref py py-func docutils literal"><span class="pre">camonitor()</span></tt></a> two further special values are
 supported.  In both of these cases <cite>format</cite> is ignored:</p>
@@ -670,12 +704,24 @@ precision is required.</p>
 <dd><p>Timestamp in seconds in format compatible with <tt class="docutils literal"><span class="pre">time.time()</span></tt> rounded to
 the nearest microsecond: for nanosecond precision use <a class="reference internal" href="#cothread.catools..raw_stamp" title="cothread.catools..raw_stamp"><tt class="xref py py-attr docutils literal"><span class="pre">raw_stamp</span></tt></a>
 instead.</p>
-<p>To compute the timestamp in <tt class="xref py py-class docutils literal"><span class="pre">datetime</span></tt> format, which can be more
-suitable for display applications, it can be added to the value by
-computing:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">datetime</span>
-<span class="n">value</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cothread.catools..datetime">
+<tt class="descclassname">.</tt><tt class="descname">datetime</tt><a class="headerlink" href="#cothread.catools..datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a dynamic property which returns <tt class="xref py py-attr docutils literal"><span class="pre">timestamp</span></tt> as a
+<tt class="xref py py-class docutils literal"><span class="pre">datetime</span></tt> value by computing</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>
 </pre></div>
+</div>
+<p>from the <tt class="xref py py-attr docutils literal"><span class="pre">timestamp</span></tt> attribute.  This calculation takes local time
+into account.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This is an incompatible change from cothread version 2.3 and earlier.
+In earlier versions this field did not exist but could be assigned to,
+in this release <tt class="xref py py-attr docutils literal"><span class="pre">datetime</span></tt> is a read-only property which cannot
+be assigned to.</p>
 </div>
 </dd></dl>
 
@@ -685,10 +731,26 @@ computing:</p>
 <dt id="cothread.catools..severity">
 <tt class="descclassname">.</tt><tt class="descname">severity</tt><a class="headerlink" href="#cothread.catools..severity" title="Permalink to this definition">¶</a></dt>
 <dd><p>EPICS alarm severity, normally one of the values listed below.</p>
-<p>0 =&gt; No alarm
-1 =&gt; Alarm condition, minor severity
-2 =&gt; Alarm condition, major severity.
-3 =&gt; Invalid value.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="3%" />
+<col width="97%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>0</td>
+<td>No alarm</td>
+</tr>
+<tr class="row-even"><td>1</td>
+<td>Alarm condition, minor severity</td>
+</tr>
+<tr class="row-odd"><td>2</td>
+<td>Alarm condition, major severity.</td>
+</tr>
+<tr class="row-even"><td>3</td>
+<td>Invalid value.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">

@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+
 import require
 
 from cothread import *
@@ -36,5 +38,5 @@ Monitors = [
 for name, datatype in Monitors:
     MonitorWf(name, datatype)
 
-print 'going'
+print('going')
 WaitForQuit()

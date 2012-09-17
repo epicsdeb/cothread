@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # Simple example of camonitor tool using greenlets etcetera.
 
+from __future__ import print_function
+
 import sys
 
 import require
@@ -26,6 +28,7 @@ class MonitorWaveform:
         self.name = name
         self.value = zeros(BPM_count, dtype = datatype)
         self.changed = 0
+        self.updates = 0
 
         camonitor(BPMpvs(name), self.MonitorCallback,
             datatype = datatype, all_updates = True)
@@ -36,11 +39,12 @@ class MonitorWaveform:
         changes.'''
         self.value[index] = value
         self.changed += 1
+        self.updates += value.update_count
 
     def Update(self):
         '''This is called on a timer and is used to generate a collected update
         for the entire waveform.'''
-        print 'tick', self.name, self.changed
+        print('tick', self.name, self.changed, self.updates)
         self.changed = 0
 
 
