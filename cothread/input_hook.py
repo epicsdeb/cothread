@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,
+# Copyright (C) 2007 James Rowland, 2007-2012 Michael Abbott,
 # Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
@@ -31,13 +31,11 @@
 for input from the interpreter command line.  Also includes optional support
 for the Qt event loop.'''
 
-import select
 import sys
 import os
-import traceback
 
-import cothread
-import coselect
+from . import cothread
+from . import coselect
 
 
 __all__ = [
@@ -46,7 +44,7 @@ __all__ = [
 
 
 # When Qt is running in its own stack it really needs quite a bit of room.
-QT_STACK_SIZE = 1024 * 1024
+QT_STACK_SIZE = int(os.environ.get('COTHREAD_QT_STACK', 1024 * 1024))
 
 
 def _readline_hook():
@@ -62,7 +60,7 @@ def _install_readline_hook(enable_hook = True):
     enable_hook parameter to False -- for example, this can be helpful if a
     background activity is causing a nuisance.'''
 
-    from _coroutine import install_readline_hook
+    from ._coroutine import install_readline_hook
     if enable_hook:
         install_readline_hook(_readline_hook)
     else:
@@ -70,21 +68,10 @@ def _install_readline_hook(enable_hook = True):
 
 
 
-def _poll_iqt(QT, poll_interval):
-    while True:
-        try:
-            QT.QTimer.singleShot(
-                poll_interval * 1e3, QT.QCoreApplication.quit)
-            QT.exec_()
-            cothread.Yield(poll_interval)
-        except KeyboardInterrupt:
-            print 'caught keyboard interrupt'
-
-
 # This is used by the _run_iqt timeout() function to avoid nested returns.
 _global_timeout_depth = 0
 
-def _run_iqt(QT, poll_interval):
+def _timer_iqt(poll_interval):
     def timeout():
         # To avoid nested returns from timeout (which effectively means we
         # would resume the main Qt thread from within a Qt message box -- not
@@ -101,84 +88,54 @@ def _run_iqt(QT, poll_interval):
 
         _global_timeout_depth -= 1
 
-    def at_exit():
-        QT.QCoreApplication.quit()
-        qt_done.Wait(5) # Give up after five seconds if no response
-
     # Set up a timer so that Qt polls cothread.  All the timer needs to do
     # is to yield control to the coroutine system.
-    timer = QT.QTimer()
-    QT.QCoreApplication.connect(timer, QT.SIGNAL('timeout()'), timeout)
+    from PyQt4 import QtCore
+    timer = QtCore.QTimer()
+    timer.timeout.connect(timeout)
     timer.start(poll_interval * 1e3)
 
-    # To ensure we shut down cleanly a little delicacy is required before we
-    # dive into the QT exec loop.
-    #   First of all, we register an atexit method to tell Qt to quit on
-    # program exit.  This enables Qt to do most of its cleaning up, and we
-    # handshake with the Qt exit to ensure this completes.
-    qt_done = cothread.Event()
-    import atexit
-    atexit.register(at_exit)
-
-    # Hand control over to Qt -- we'll now get it back through periodic calls
-    # to timeout().
-    QT.exec_()
-    # This is a hack to hopefully eliminate the annoying message on exit:
-    #   Mutex destroy failure: Device or resource busy
-    QT.unlock()
-    qt_done.Signal()
+    return timer
 
 
-def iqt(poll_interval = 0.05, use_timer = True, argv = sys.argv):
+def iqt(poll_interval = 0.05, run_exec = True, argv = None):
     '''Installs Qt event handling hook.  The polling interval is in
     seconds.'''
 
-    # Unfortunately there are some annoying incompatibilities between the Qt3
-    # and Qt4 interfaces.  This little class captures the fragments we need
-    # from one or the other library in a common interface.
-    class QT:
-        try:
-            from PyQt4.QtCore import QCoreApplication, QTimer, SIGNAL
-            from PyQt4.QtGui import QApplication
+    from PyQt4 import QtCore, QtGui
+    global _qapp, _timer
 
-            instance = QCoreApplication.instance
-            exec_ = QCoreApplication.exec_
+    # Importing PyQt4 has an unexpected side effect: it removes the input hook!
+    # So we put it back again...
+    _install_readline_hook(True)
 
-            @classmethod
-            def unlock(cls):    pass
+    # Repeated calls to iqt() are (silent) no-ops.  Is it more friendly do this
+    # than to assert fail?  Not sure to be honest.
+    if _qapp is not None:
+        return _qapp
 
-            # Remove the PyQt input hook, which messes us up!
-            from PyQt4 import QtCore
-            QtCore.pyqtRemoveInputHook()
-            _install_readline_hook(True)
+    # Ensure that there is a QtApplication instance, creating one if necessary.
+    _qapp = QtCore.QCoreApplication.instance()
+    if _qapp is None:
+        if argv is None:
+            argv = sys.argv
+        _qapp = QtGui.QApplication(argv)
 
-        except ImportError:
-            import qt
-            from qt import SIGNAL, QTimer, QApplication
-            QCoreApplication = qt.qApp
+    # Arrange to get a Quit event when the last window goes.  This allows the
+    # application to simply rest on WaitForQuit().
+    _qapp.lastWindowClosed.connect(cothread.Quit)
 
-            @classmethod
-            def instance(cls):  return cls.QCoreApplication
+    # Create timer.  Hang onto the timer to prevent it from vanishing.
+    _timer = _timer_iqt(poll_interval)
 
-            exec_ = QCoreApplication.exec_loop
-            unlock = QCoreApplication.unlock
-
-    global _qapp
-    assert QT.QCoreApplication.startingUp(), \
-        'Must use iqt() to create initial QApplication object.'
-    _qapp = QT.QApplication(argv)
-
-    QT.QCoreApplication.connect(
-        QT.instance(), QT.SIGNAL('lastWindowClosed()'), cothread.Quit)
-
-    if use_timer:
-        iqt_thread = _run_iqt
-    else:
-        iqt_thread = _poll_iqt
-    cothread.Spawn(iqt_thread,  QT, poll_interval, stack_size = QT_STACK_SIZE)
-    cothread.Yield()
+    # Finally, unless we've been told not to, spawn our own exec loop.
+    if run_exec:
+        cothread.Spawn(_qapp.exec_, stack_size = QT_STACK_SIZE)
+        cothread.Yield()
 
     return _qapp
+
+_qapp = None
 
 
 # Automatically install the readline hook.  This is the safest thing to do.

@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,
+# Copyright (C) 2007 James Rowland, 2007-2012 Michael Abbott,
 # Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
@@ -66,6 +66,8 @@ Similarly the EventQueue can be used for communication.
 # It might be worth taking a close look at:
 #   http://wiki.secondlife.com/wiki/Eventlet
 
+from __future__ import print_function
+
 import sys
 import os
 import time
@@ -74,12 +76,12 @@ import traceback
 import collections
 import thread
 
-import _coroutine
+from . import _coroutine
 
 if os.environ.get('COTHREAD_CHECK_STACK'):
     _coroutine.enable_check_stack(True)
 
-import coselect
+from . import coselect
 
 
 __all__ = [
@@ -104,6 +106,7 @@ __all__ = [
     'WaitForQuit',      # Wait until Quit() is called
 
     'Timer',            # One-shot cancellable timer
+    'Callback',         # Simple asynchronous synchronisation
 ]
 
 
@@ -117,47 +120,60 @@ class _TimerQueue(object):
     # cheerful to implement and runs fast enough.
 
     def __init__(self):
-        # The queue is a list of (timeout, task) pairs -- it's important that
-        # the timeout is first so that bisect searching of the queue works
-        # properly.
-        self.__queue = []
+        # We maintain the list of timeouts and the associated tasks separately
+        # so that bisect searching can safely search the timeouts list without
+        # trying to compare wakeups.
+        self.__timeouts = []
+        self.__wakeups = []
         self.__garbage = 0
 
     def put(self, task, timeout):
         '''Adds value to the queue with the specified timeout.'''
-        index = bisect.bisect(self.__queue, (timeout, None))
-        self.__queue.insert(index, (timeout, task))
+        index = bisect.bisect(self.__timeouts, timeout)
+        self.__timeouts.insert(index, timeout)
+        self.__wakeups.insert(index, task)
 
     def timeout(self):
         '''Returns the timeout of the queue.  Only valid if queue not empty.'''
-        return self.__queue[0][0]
+        return self.__timeouts[0]
 
     def wake_expired(self):
-        index = bisect.bisect_right(self.__queue, (time.time(), None))
-        expired = self.__queue[:index]
-        del self.__queue[:index]
+        index = bisect.bisect_right(self.__timeouts, time.time())
+        expired = self.__wakeups[:index]
+        del self.__timeouts[:index]
+        del self.__wakeups[:index]
 
-        for _, task in expired:
+        for task in expired:
             if not task.wakeup(_WAKEUP_TIMEOUT):
                 self.__garbage -= 1
         assert 0 <= self.__garbage <= len(self)
 
     def __len__(self):
         '''Returns the number of entries on the queue.'''
-        return len(self.__queue)
+        return len(self.__timeouts)
 
     def cancel(self):
         '''This is called to cancel a timeout.  We add this to our garbage
         count, triggering a garbage collect if appropriate.'''
         self.__garbage += 1
         if 2 * self.__garbage > len(self):
-            self.__queue = [entry
-                for entry in self.__queue
-                if not entry[1].woken()]
+            timeouts = []
+            wakeups = []
+            for timeout, task in zip(self.__timeouts, self.__wakeups):
+                if not task.woken():
+                    timeouts.append(timeout)
+                    wakeups.append(task)
+            self.__timeouts = timeouts
+            self.__wakeups = wakeups
             self.__garbage = 0
 
 
 class _WakeupQueue(object):
+    __slots__ = [
+        '__waiters',        # List of wakeup objects pending wakeup
+        '__garbage',        # Count of expired wakeup objects
+    ]
+
     def __init__(self):
         self.__waiters = []
         # Every time a timeout occurs a waiter is left behind on the timer
@@ -206,6 +222,14 @@ class _Wakeup(object):
     '''A _Wakeup object is used when a task is to be suspended on one or more
     queues.  On wakeup the original task is woken, but only once: this is
     used to ensure that entries on other queues are effectively cancelled.'''
+
+    __slots__ = [
+        '__task',           # Coroutine associated with task to wake
+        '__wakeup_task',    # Action to take on wakeup
+        '__queue',          # Queue where this wakeup object resides
+        '__timers',         # Timeout queue for this wakeup
+    ]
+
     def __init__(self, wakeup_task, queue, timers):
         self.__task = _coroutine.get_current()
         self.__wakeup_task = wakeup_task
@@ -553,6 +577,11 @@ def Deadline(deadline):
 class EventBase(object):
     '''The base class for implementing events and signals.'''
 
+    __slots__ = [
+        '__wait_queue',     # Queue of cothreads waiting to be woken
+        '__wait_abort',     # Count of abortable waits.
+    ]
+
     def __init__(self):
         # List of tasks currently waiting to be woken up.
         self.__wait_queue = _WakeupQueue()
@@ -573,6 +602,7 @@ class EventBase(object):
     def _Wakeup(self, wake_all):
         '''Wakes one or all waiting tasks.  Returns False if an aborted wait
         needs to be emulated.'''
+        _validate_thread()
         if self.__wait_abort and not wake_all:
             # This is a special case: an aborted wait needs to be completed.
             # This occurs when waiting needs to be simulated, in which case
@@ -593,7 +623,16 @@ class Spawn(EventBase):
     '''This class is used to wrap cooperative threads: every task (except
     for main) managed by the scheduler should be an instance of this class.'''
 
-    finished = property(fget = lambda self: bool(self.__result))
+    __slots__ = [
+        '__function',       # Function implementing cothread action
+        '__args',           # Positional arguments for action
+        '__kargs',          # Keyword arguments for action
+        '__result',         # Result when action has completed
+        '__raise_on_wait',  # Action to take on exception
+    ]
+
+    # Set of all active processes for debugging
+    Cothreads = set()
 
     def __init__(self, function, *args, **kargs):
         '''The given function and arguments will be called as a new task.
@@ -628,13 +667,14 @@ class Spawn(EventBase):
                 # No good.  We can't allow this exception to propagate, as
                 # doing so will kill the scheduler.  Instead report the
                 # traceback right here.
-                print 'Spawned task', \
-                    getattr(self.__function, '__name__', '(unknown)'), \
-                    'raised uncaught exception'
+                print('Spawned task',
+                    getattr(self.__function, '__name__', '(unknown)'),
+                    'raised uncaught exception', file = sys.stderr)
                 traceback.print_exc()
                 self.__result = (True, None)
         if not self._Wakeup(False):
-            # Aborted wakeup: consume the result now
+            # Aborted wakeup: consume the result now, will cause a subsequent
+            # Wait() to fail, which it should.
             del self.__result
         # See wait_until() for an explanation of this return value.
         return []
@@ -679,6 +719,11 @@ class Spawn(EventBase):
 class Event(EventBase):
     '''Any number of tasks can wait for an event to occur.  A single value
     can also be associated with the event.'''
+
+    __slots__ = [
+        '__value',          # Value on this event
+        '__auto_reset',     # Whether value is consumed when taken
+    ]
 
     def __init__(self, auto_reset = True):
         '''An event object is either signalled or reset.  Any task can wait
@@ -752,6 +797,11 @@ class Event(EventBase):
 class EventQueue(EventBase):
     '''A queue of objects.  A queue can also be treated as an iterator.'''
 
+    __slots__ = [
+        '__queue',          # Queue of values
+        '__closed',         # Used to halt iteration over this queue
+    ]
+
     def __init__(self):
         EventBase.__init__(self)
         self.__queue = []
@@ -807,6 +857,12 @@ class EventQueue(EventBase):
 class ThreadedEventQueue(object):
     '''An event queue designed to work with threads.'''
 
+    __slots__ = [
+        '__values',         # List of queued values
+        '__signal',         # File handle used to notify new value
+        'wait_descriptor',  # File handle waited on for new values
+    ]
+
     def __init__(self):
         # According to the documentation this is thread safe, so we don't
         # need to take any particular precautions when using this!
@@ -841,12 +897,66 @@ class ThreadedEventQueue(object):
 
 
 
+# Implements asynchronous (and "lock free") synchronisation from any Python
+# thread to the main cothread thread.  Technically the Python Global Interpreter
+# Lock (GIL) plays an essential role in this code by serialising all the actions
+# here and ensuring that collections.deque actions are atomic (which follows
+# from its implementation as a C extension).
+#
+# Note that the signalling from Callback() to the callback_events() loop is
+# rather delicate.  Care is taken here to reduce the number of os.read/write
+# actions as these involve costly system calls, but without the hazard of losing
+# events which would result in deadlock.
+class _Callback:
+    COTHREAD_CALLBACK_STACK = \
+        int(os.environ.get('COTHREAD_CALLBACK_STACK', 1024 * 1024))
+
+    def __init__(self):
+        self.values = collections.deque()
+        self.wait, self.signal = os.pipe()
+        self.waiting = False
+        Spawn(self.callback_events, stack_size = self.COTHREAD_CALLBACK_STACK)
+
+    def callback_events(self):
+        while True:
+            self.waiting = True
+            if not self.values:
+                coselect.poll_list([(self.wait, coselect.POLLIN)])
+                os.read(self.wait, 4096)    # Consume all pending wakeups
+
+            while self.values:
+                action, args = self.values.popleft()
+                try:
+                    action(*args)
+                except:
+                    print('Asynchronous callback raised uncaught exception',
+                        file = sys.stderr)
+                    traceback.print_exc()
+
+    def __call__(self, action, *args):
+        '''This can be called from within any Python thread to arrange for
+        action(*args) to be called in the context of the cothread thread.'''
+        self.values.append((action, args))
+        if self.waiting:
+            self.waiting = False
+            os.write(self.signal, '-')
+
+
 class Timer(object):
     '''A cancellable one-shot or auto-retriggering timer.'''
 
+    __slots__ = [
+        '__timeout',        # Time to wait until triggering timer
+        '__callback',       # Function to call when timer fires
+        '__retrigger',      # Enables retriggering timers
+        '__reuse',          # Set if timer can be reused
+        '__control',        # Event object for controlling timer
+        '__fire',           # Controls action when event timeout occurs
+    ]
+
     def __init__(self, timeout, callback,
             retrigger = False, reuse = False, stack_size = 0):
-        '''The callback will be called (with no argumentes) after the specified
+        '''The callback will be called (with no arguments) after the specified
         timeout.  If retrigger is set then the timer will automatically
         retrigger until it is cancelled.  Unless reuse or retrigger is set the
         timer will be cancelled once it fires and cannot be reused.'''
@@ -935,7 +1045,6 @@ def WaitForAll(event_list, timeout = None):
 #       method (or even with a special wakeup value), but may require some care.
 
 
-
 _QuitEvent = Event(auto_reset = False)
 
 def Quit():
@@ -964,11 +1073,15 @@ _scheduler = _Scheduler.create()
 # only be one) so that we can recognise when we're in another thread.
 _scheduler_thread_id = thread.get_ident()
 
+
 # Thread validation: ensure cothreads aren't used across threads!
 def _validate_thread():
     assert _scheduler_thread_id == thread.get_ident(), \
         'Cannot use cothread with multiple threads.  Consider using ' \
         'ThreadedEventQueue if necessary.'
+
+# This is the asynchronous callback method.
+Callback = _Callback()
 
 
 def SleepUntil(deadline):

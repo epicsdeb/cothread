@@ -384,7 +384,7 @@ signal), while an :class:`EventQueue` can hold a list of unbounded length.
 
         def consumer(e):
             for x in e:
-                print 'consumed', x
+                print('consumed', x)
 
         eq = EventQueue()
         Spawn(consumer, eq)
@@ -400,7 +400,9 @@ signal), while an :class:`EventQueue` can hold a list of unbounded length.
     is designed to be used to communicate between a Python thread outside of
     the cothread library and a cothread.  Communication can occur in either
     direction: an outside thread can call :meth:`Signal` on a threaded event
-    queue while a cothread calls :meth:`Wait`, or vice versa.
+    queue while a cothread calls :meth:`Wait`, or vice versa.  Note however that
+    for communicating from Python threads to cothread it is more efficient to
+    use :func:`Callback`.
 
     If a thread calls :meth:`Wait` it will block until a cothread (or another
     thread) calls :meth:`Signal`.  If this is undesirable then the field
@@ -472,18 +474,29 @@ signal), while an :class:`EventQueue` can hold a list of unbounded length.
         This use of `catch_interrupt` to set a signal handler is an incompatible
         change from cothread 2.0 and earlier.
 
+..  function:: Callback(action, *args)
 
-..  function:: iqt(poll_interval=0.05, use_timer=True, argv=sys.argv)
+    This function can be called from any Python thread to arrange for
+    ``action(*args)`` to be called in the cothread's own thread.
+
+    Note that all callbacks are called in sequence and so any individual
+    ``action()`` should return as soon as possible to avoid blocking subsequent
+    callbacks -- if more work needs to be done, call ``Spawn()``.
+
+
+..  function:: iqt(poll_interval=0.05, run_exec=True, argv=None)
 
     If Qt is to be used then this routine must be called during initialisation
     to enable the Qt event loop and create the initial Qt application instance.
     The Qt application instance is returned.
 
     The normal Qt event hook does not work correctly with modal dialogs (because
-    they run their own message loops) -- typically either a modal window will be
-    closed immediately, or else will block the the scheduling of other
-    cothreads, depending on whether `use_timer` is :const:`False` or
-    :const:`True`.
+    they run their own message loops) -- typically a modal window will block the
+    the scheduling of other cothreads.
+
+    If :mod:`cothread` is used in a context where there is no control over the
+    Qt event loop then `run_exec` can be set to :const:`False` to ensure that
+    :mod:`cothread` doesn't try to run the event loop.
 
 
 Coselect and Cosocket Functions

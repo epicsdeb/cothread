@@ -85,6 +85,66 @@ with the <tt class="xref py py-func docutils literal"><span class="pre">poll_sch
 returned.</li>
 </ul>
 </div>
+<div class="section" id="callback">
+<h2>Callback<a class="headerlink" href="#callback" title="Permalink to this headline">¶</a></h2>
+<p>The new <tt class="xref py py-func docutils literal"><span class="pre">Callback()</span></tt> mechanism raises some issues.</p>
+<ol class="arabic simple">
+<li>It is possible for the callback queue to grow without limit, and this is
+invisible to the poor users.  This can happen if too much time is spent in
+processing updates.</li>
+<li>The callback queue is processed without yielding.  If the callback queue is
+very long this can cause unresponsive behaviour.  Unfortunately inserting a
+yield on every callback is surprisingly costly.</li>
+<li>We lack any mechanism for observing what&#8217;s going on inside the library.</li>
+</ol>
+</div>
+<div class="section" id="some-notes-for-emulating-select-on-windows">
+<h2>Some notes for emulating select on Windows<a class="headerlink" href="#some-notes-for-emulating-select-on-windows" title="Permalink to this headline">¶</a></h2>
+<p>Want to look at <cite>libevent</cite>.  I suspect this, being a network API, is largely
+socket based, but there may be clues.  Source file win32select.c, function
+win32_dispatch(), looks vaguely interesting.  Also poll.c.</p>
+<p>Also should look at twistedmatrix.com, and there&#8217;s a further page of notes in
+poll_win32.py</p>
+<p>Anyhow, building on Windows is a pain and I dislike the platform anyway...</p>
+<div class="section" id="questions-on-stack-overflow">
+<h3>Questions on Stack Overflow.<a class="headerlink" href="#questions-on-stack-overflow" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="http://stackoverflow.com/questions/3021424/select-on-a-named-pipe">http://stackoverflow.com/questions/3021424/select-on-a-named-pipe</a></p>
+<p>The answer here is use the named pipe APIs using the overlapped I/O model and
+WaitForMultipleObjects(), example</p>
+<blockquote>
+<div><a class="reference external" href="http://msdn.microsoft.com/en-us/library/aa365603(VS.85).aspx">http://msdn.microsoft.com/en-us/library/aa365603(VS.85).aspx</a></div></blockquote>
+<p><a class="reference external" href="http://stackoverflow.com/questions/3911799/windows-poll-or-select-on-named-pipe">http://stackoverflow.com/questions/3911799/windows-poll-or-select-on-named-pipe</a></p>
+<p>Answer is need to use overlapped I/O or I/O completion ports, references</p>
+<blockquote>
+<div><a class="reference external" href="http://en.wikipedia.org/wiki/Iocp">http://en.wikipedia.org/wiki/Iocp</a></div></blockquote>
+<p>Another interesting suggestion is to use socketpair(2) instead of pipe(2) to
+create the asynchronous event notifier in _Callback and ThreadedEventQueue.
+This still leaves stdin handling for the input hook, but at least would restore
+some level of function.  The socketpair function is in the Python socket module.</p>
+<p>Ho ho ho.  Turns out that Windows doesn&#8217;t have socketpair anyway!  There&#8217;s a
+reasonable looking example here:</p>
+<p><a class="reference external" href="http://code.activestate.com/recipes/525487-extending-socketsocketpair-to-work-on-windows/">http://code.activestate.com/recipes/525487-extending-socketsocketpair-to-work-on-windows/</a></p>
+<p>which does this:</p>
+<div class="highlight-python"><pre>def SocketPair(family = AF_INET; type_ = SOCK_STREAM; proto = IPPROTO_IP):
+    listensock = socket(family, type_, proto)
+    listensock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+    listensock.bind( ('localhost', 0) )
+    iface, ephport = listensock.getsockname()
+    listensock.listen(1)
+
+    sock1 = socket(family, type_, proto)
+    connthread = threading.Thread(target=pairConnect, args=[sock1, ephport])
+    connthread.setDaemon(1)
+    connthread.start()
+    sock2, sock2addr = listensock.accept()
+    listensock.close()
+    return (sock1, sock2)
+
+def pairConnect(sock, port):
+    sock.connect( ('localhost', port) )</pre>
+</div>
+</div>
+</div>
 </div>
 
 
@@ -97,6 +157,11 @@ returned.</li>
   <ul>
 <li><a class="reference internal" href="#">Cothread Architecture Notes</a><ul>
 <li><a class="reference internal" href="#coroutine-switching">Coroutine Switching</a></li>
+<li><a class="reference internal" href="#callback">Callback</a></li>
+<li><a class="reference internal" href="#some-notes-for-emulating-select-on-windows">Some notes for emulating select on Windows</a><ul>
+<li><a class="reference internal" href="#questions-on-stack-overflow">Questions on Stack Overflow.</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

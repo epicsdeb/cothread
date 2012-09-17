@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2010 Michael Abbott, Diamond Light Source Ltd.
+# Copyright (C) 2010-2012 Michael Abbott, Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -33,11 +33,11 @@
 #   http://sourceforge.net/projects/pywin32/
 # import win32file
 # import win32pipe
-import _winlib
+from . import _winlib
 import msvcrt
 import time
 
-import coselect
+from . import coselect
 
 
 def poll_block_win32(poll_list, timeout = None):
@@ -134,3 +134,7 @@ def poll_block_win32(poll_list, timeout = None):
 # Some final links to record here:
 #   http://sourceware.org/pthreads-win32    Pthreads for Win32
 #   http://www.mingw.org                    GNU for Windows
+#
+# Also take a look at http://www.kegel.com/poller/ -- this is a common
+# abstraction over /dev/poll, kqueue(), /dev/epoll and Linux realtime ready
+# signals, which probably provides useful ideas.

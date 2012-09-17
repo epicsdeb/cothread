@@ -51,7 +51,7 @@
   <h1>Source code for cothread.catools</h1><div class="highlight"><pre>
 <span class="c"># This file is part of the Diamond cothread library.</span>
 <span class="c">#</span>
-<span class="c"># Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,</span>
+<span class="c"># Copyright (C) 2007 James Rowland, 2007-2012 Michael Abbott,</span>
 <span class="c"># Diamond Light Source Ltd.</span>
 <span class="c">#</span>
 <span class="c"># The Diamond cothread library is free software; you can redistribute it</span>
@@ -97,18 +97,21 @@
 <span class="sd">See the documentation for the individual functions for more details on using</span>
 <span class="sd">them.&#39;&#39;&#39;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">atexit</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">threading</span>
 
-<span class="kn">import</span> <span class="nn">cothread</span>
-<span class="kn">import</span> <span class="nn">cadef</span>
-<span class="kn">import</span> <span class="nn">dbr</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cothread</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cadef</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">dbr</span>
 
-<span class="kn">from</span> <span class="nn">dbr</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">cadef</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.dbr</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.cadef</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="c"># The core functions.</span>
@@ -127,12 +130,9 @@
 <span class="c"># Stack size definitions</span>
 <span class="n">K</span> <span class="o">=</span> <span class="mi">1024</span>
 
-<span class="n">CA_ACTION_STACK</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="n">K</span>     <span class="c"># Used for one shot CA actions</span>
-
-<span class="c"># For CA notify callbacks by default we use the shared stack as arbitrary</span>
-<span class="c"># processing tends to be done in this context.</span>
-<span class="n">CALLBACK_DISPATCH_STACK</span> <span class="o">=</span> <span class="n">_check_env</span><span class="p">(</span><span class="s">&#39;CATOOLS_CALLBACK_STACK&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<span class="n">CA_EVENT_STACK</span> <span class="o">=</span> <span class="n">_check_env</span><span class="p">(</span><span class="s">&#39;CATOOLS_EVENT_STACK&#39;</span><span class="p">,</span> <span class="mi">512</span> <span class="o">*</span> <span class="n">K</span><span class="p">)</span>
+<span class="c"># Miscellaneous channel access operations are created using this stack size.  By</span>
+<span class="c"># default we use the shared stack to avoid accidents.</span>
+<span class="n">CA_ACTION_STACK</span>         <span class="o">=</span> <span class="n">_check_env</span><span class="p">(</span><span class="s">&#39;CATOOLS_ACTION_STACK&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
 
 
@@ -174,11 +174,11 @@
             <span class="c"># will be raised anyway, which seems fair enough!</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">function</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">ca_nothing</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">ca_nothing</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">error</span>
-            <span class="k">except</span> <span class="n">cadef</span><span class="o">.</span><span class="n">CAException</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">cadef</span><span class="o">.</span><span class="n">CAException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">error</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">cadef</span><span class="o">.</span><span class="n">Disconnected</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">except</span> <span class="n">cadef</span><span class="o">.</span><span class="n">Disconnected</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ECA_DISCONN</span><span class="p">)</span>
 
     <span class="c"># Make sure the wrapped function looks like its original self.</span>
@@ -218,6 +218,9 @@
 
         <span class="bp">self</span> <span class="o">=</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ca_puser</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">chid</span><span class="p">)</span>
         <span class="n">op</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">op</span>
+        <span class="n">cothread</span><span class="o">.</span><span class="n">Callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_ca_connect_</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">on_ca_connect_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cadef</span><span class="o">.</span><span class="n">CA_OP_CONN_UP</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">CA_OP_CONN_DOWN</span><span class="p">]</span>
         <span class="n">connected</span> <span class="o">=</span> <span class="n">op</span> <span class="o">==</span> <span class="n">cadef</span><span class="o">.</span><span class="n">CA_OP_CONN_UP</span>
 
@@ -243,6 +246,7 @@
         <span class="c"># Setting this allows a channel object to autoconvert into the chid</span>
         <span class="c"># when passed to ca_ functions.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_as_parameter_</span> <span class="o">=</span> <span class="n">chid</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">_flush_io</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Ensures the associated channel access is closed.&#39;&#39;&#39;</span>
@@ -270,16 +274,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">__subscriptions</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">subscription</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">Wait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Waits for the channel to become connected.  Raises a Timeout</span>
-<span class="sd">        exception if the timeout expires first.&#39;&#39;&#39;</span>
-        <span class="n">ca_timeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__connected</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="sd">&#39;&#39;&#39;Waits for the channel to become connected if not already connected.</span>
+<span class="sd">        Raises a Timeout exception if the timeout expires first.&#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__connected</span><span class="p">:</span>
+            <span class="n">ca_timeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__connected</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">ChannelCache</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;A cache of all open channels.  If a channel is not present in the</span>
 <span class="sd">    cache it is automatically opened.  The cache needs to be purged to</span>
 <span class="sd">    ensure a clean shutdown.&#39;&#39;&#39;</span>
-    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;__channels&#39;</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__channels</span> <span class="o">=</span> <span class="p">{}</span>
@@ -313,7 +317,7 @@
     <span class="n">__slots__</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s">&#39;name&#39;</span><span class="p">,</span>             <span class="c"># Name of the PV subscribed to</span>
         <span class="s">&#39;callback&#39;</span><span class="p">,</span>         <span class="c"># The user callback function</span>
-        <span class="s">&#39;as_string&#39;</span><span class="p">,</span>        <span class="c"># Automatic type conversion of data to strings</span>
+        <span class="s">&#39;dbr_to_value&#39;</span><span class="p">,</span>     <span class="c"># Conversion from dbr</span>
         <span class="s">&#39;channel&#39;</span><span class="p">,</span>          <span class="c"># The associated channel object</span>
         <span class="s">&#39;__state&#39;</span><span class="p">,</span>          <span class="c"># Whether the subscription is active</span>
         <span class="s">&#39;_as_parameter_&#39;</span><span class="p">,</span>   <span class="c"># Associated channel access subscription handle</span>
@@ -328,6 +332,18 @@
     <span class="n">__OPEN</span>    <span class="o">=</span> <span class="mi">1</span>       <span class="c"># Normally active</span>
     <span class="n">__CLOSED</span>  <span class="o">=</span> <span class="mi">2</span>       <span class="c"># Closed but not yet deleted</span>
 
+    <span class="c"># Mapping from format to event mask for default events</span>
+    <span class="n">__default_events</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">FORMAT_RAW</span><span class="p">:</span>  <span class="n">DBE_VALUE</span><span class="p">,</span>
+        <span class="n">FORMAT_TIME</span><span class="p">:</span> <span class="n">DBE_VALUE</span> <span class="o">|</span> <span class="n">DBE_ALARM</span><span class="p">,</span>
+        <span class="n">FORMAT_CTRL</span><span class="p">:</span> <span class="n">DBE_VALUE</span> <span class="o">|</span> <span class="n">DBE_ALARM</span> <span class="o">|</span> <span class="n">DBE_PROPERTY</span> <span class="p">}</span>
+
+    <span class="n">__lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>   <span class="c"># Used for update merging.</span>
+
+    <span class="c"># Create our own callback queue so that camonitor() callbacks can be handled</span>
+    <span class="c"># concurrently with other asynchronous callbacks.</span>
+    <span class="n">__Callback</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">_Callback</span><span class="p">()</span>
+
     <span class="nd">@cadef.event_handler</span>
     <span class="k">def</span> <span class="nf">__on_event</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;This is called each time the subscribed value changes.  As this is</span>
@@ -337,42 +353,60 @@
 
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ECA_NORMAL</span><span class="p">:</span>
             <span class="c"># Good data: extract value from the dbr.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__signal</span><span class="p">(</span><span class="n">dbr</span><span class="o">.</span><span class="n">dbr_to_value</span><span class="p">(</span>
-                <span class="n">args</span><span class="o">.</span><span class="n">raw_dbr</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">as_string</span><span class="p">))</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbr_to_value</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">raw_dbr</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">notify_disconnect</span><span class="p">:</span>
             <span class="c"># Something is wrong: let the subscriber know, but only if</span>
             <span class="c"># they&#39;ve requested disconnect nofication.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__signal</span><span class="p">(</span><span class="n">ca_nothing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__maybe_signal</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__maybe_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Performs update merging and callback notification if appropriate.&#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_updates</span><span class="p">:</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">update_count</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__Callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__signal</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">__lock</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__Callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__signal</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">+=</span> <span class="mi">1</span>
 
     <span class="k">def</span> <span class="nf">__signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_updates</span><span class="p">:</span>
-            <span class="c"># If all_updates is requested then every incoming update directly</span>
-            <span class="c"># generates a corresponding callback call.</span>
-            <span class="n">value</span><span class="o">.</span><span class="n">update_count</span> <span class="o">=</span> <span class="mi">1</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__callback_queue</span><span class="o">.</span><span class="n">Signal</span><span class="p">((</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c"># If merged updates are requested then we hang onto the latest</span>
-            <span class="c"># value and only schedule a callback if there isn&#39;t one already</span>
-            <span class="c"># in the queue.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="n">value</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="c"># First update since last reported.</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">__callback_queue</span><span class="o">.</span><span class="n">Signal</span><span class="p">((</span>
-                    <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__merged_callback</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="sd">&#39;&#39;&#39;Wrapper for performing callbacks safely: only performs the callback</span>
+<span class="sd">        if the subscription is open and reports and handles any exceptions that</span>
+<span class="sd">        might arise.&#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__state</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OPEN</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="c"># This arises from a merged update.</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">__lock</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__value</span>
+                    <span class="n">value</span><span class="o">.</span><span class="n">update_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="c"># We try and be robust about exceptions in handlers, but to</span>
+                <span class="c"># prevent a perpetual storm of exceptions, we close the</span>
+                <span class="c"># subscription after reporting the problem.</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;Subscription </span><span class="si">%s</span><span class="s"> callback raised exception&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="nb">file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;Subscription </span><span class="si">%s</span><span class="s"> closed&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
 
     <span class="k">def</span> <span class="nf">_on_connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">connected</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;This is called each time the connection state of the underlying</span>
 <span class="sd">        channel changes.  Note that this is also called asynchronously.&#39;&#39;&#39;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">connected</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">notify_disconnect</span><span class="p">:</span>
             <span class="c"># Channel has become disconnected: tell the subscriber.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__signal</span><span class="p">(</span><span class="n">ca_nothing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ECA_DISCONN</span><span class="p">))</span>
-
-    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;On object deletion ensure that the associated subscription is</span>
-<span class="sd">        closed.&#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__maybe_signal</span><span class="p">(</span>
+                <span class="n">ca_nothing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ECA_DISCONN</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Closes the subscription and releases any associated resources.</span>
@@ -381,27 +415,27 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__state</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OPEN</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">_remove_subscription</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
             <span class="n">cadef</span><span class="o">.</span><span class="n">ca_clear_subscription</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_parameter_</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">__value</span>
+            <span class="n">cadef</span><span class="o">.</span><span class="n">ca_flush_io</span><span class="p">()</span>
+            <span class="c"># Delete the callback to avoid possible circular references.</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__CLOSED</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span>
-            <span class="n">events</span> <span class="o">=</span> <span class="n">DBE_VALUE</span><span class="p">,</span>
+            <span class="n">events</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
             <span class="n">datatype</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">format</span> <span class="o">=</span> <span class="n">FORMAT_RAW</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
             <span class="n">all_updates</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">notify_disconnect</span> <span class="o">=</span> <span class="bp">False</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Subscription initialisation: callback and context are used to</span>
-<span class="sd">        frame values written to the queue;  events selects which types of</span>
-<span class="sd">        update are notified;  datatype, format, count and as_string define</span>
-<span class="sd">        the format of returned data.&#39;&#39;&#39;</span>
+        <span class="sd">&#39;&#39;&#39;Subscription initialisation.&#39;&#39;&#39;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">as_string</span> <span class="o">=</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">DBR_CHAR_STR</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">all_updates</span> <span class="o">=</span> <span class="n">all_updates</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">notify_disconnect</span> <span class="o">=</span> <span class="n">notify_disconnect</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c"># If events not specified then compute appropriate default corresponding</span>
+        <span class="c"># to the requested format.</span>
+        <span class="k">if</span> <span class="n">events</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__default_events</span><span class="p">[</span><span class="n">format</span><span class="p">]</span>
 
         <span class="c"># We connect to the channel so that we can be kept informed of</span>
         <span class="c"># connection updates.</span>
@@ -418,16 +452,14 @@
     <span class="k">def</span> <span class="nf">__create_subscription</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">datatype</span><span class="p">,</span> <span class="n">format</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Creates the channel subscription with the specified parameters:</span>
 <span class="sd">        event mask, datatype and format, array count.  Waits for the channel</span>
-<span class="sd">        to become connected if datatype is not specified (None).&#39;&#39;&#39;</span>
+<span class="sd">        to become connected.&#39;&#39;&#39;</span>
 
-        <span class="k">if</span> <span class="n">datatype</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="c"># If no datatype has been specified then try and pick up the</span>
-            <span class="c"># datatype associated with the connected channel.</span>
-            <span class="c"># First wait for the channel to connect</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">Wait</span><span class="p">()</span>
-            <span class="n">datatype</span> <span class="o">=</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ca_field_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">)</span>
+        <span class="c"># Ensure the channel is connected so that type_to_dbr() can discover the</span>
+        <span class="c"># underlying channel type if necessary.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">Wait</span><span class="p">()</span>
         <span class="c"># Can now convert the datatype request into the subscription datatype.</span>
-        <span class="n">datatype</span> <span class="o">=</span> <span class="n">dbr</span><span class="o">.</span><span class="n">type_to_dbr</span><span class="p">(</span><span class="n">datatype</span><span class="p">,</span> <span class="n">format</span><span class="p">)</span>
+        <span class="n">dbrcode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbr_to_value</span> <span class="o">=</span> \
+            <span class="n">dbr</span><span class="o">.</span><span class="n">type_to_dbr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">,</span> <span class="n">datatype</span><span class="p">,</span> <span class="n">format</span><span class="p">)</span>
 
         <span class="c"># Finally create the subscription with all the requested properties</span>
         <span class="c"># and hang onto the returned event id as our implicit ctypes</span>
@@ -435,56 +467,17 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__state</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OPENING</span><span class="p">:</span>
             <span class="n">event_id</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">()</span>
             <span class="n">cadef</span><span class="o">.</span><span class="n">ca_create_subscription</span><span class="p">(</span>
-                <span class="n">datatype</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span>
+                <span class="n">dbrcode</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">__on_event</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">py_object</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
                 <span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="n">event_id</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_as_parameter_</span> <span class="o">=</span> <span class="n">event_id</span><span class="o">.</span><span class="n">value</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OPEN</span>
-
-
-    <span class="c"># By default all subscription events are queued onto this queue which is</span>
-    <span class="c"># dispatched by the callback dispatcher in its own thread.</span>
-    <span class="n">__callback_queue</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">EventQueue</span><span class="p">()</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_callback_dispatcher</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;The default event handler expects a callback and a value on</span>
-<span class="sd">        the queue and simply fires the callback.  This runs as a continous</span>
-<span class="sd">        background process to dispatch subscription events.&#39;&#39;&#39;</span>
-        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">__callback_queue</span><span class="o">.</span><span class="n">Wait</span><span class="p">()</span>
-            <span class="c"># Only perform callbacks on open subscriptions.</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__state</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OPEN</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">callback</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-                <span class="k">except</span><span class="p">:</span>
-                    <span class="c"># We try and be robust about exceptions in handlers, but</span>
-                    <span class="c"># to prevent a perpetual storm of exceptions, we close the</span>
-                    <span class="c"># subscription after reporting the problem.</span>
-                    <span class="k">print</span> <span class="s">&#39;Subscription </span><span class="si">%s</span><span class="s"> callback raised exception&#39;</span> <span class="o">%</span> \
-                        <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-                    <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-                    <span class="k">print</span> <span class="s">&#39;Subscription </span><span class="si">%s</span><span class="s"> closed&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">__merged_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Called on notification of update when merging multiple updates.</span>
-<span class="sd">        The user&#39;s callback is fired with the latest value.&#39;&#39;&#39;</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="n">value</span><span class="o">.</span><span class="n">update_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__update_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-
-
-<span class="c"># Ensure the callback dispatcher is running.</span>
-<span class="n">_callback_dispatcher</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Spawn</span><span class="p">(</span>
-    <span class="n">_Subscription</span><span class="o">.</span><span class="n">_callback_dispatcher</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">=</span> <span class="n">CALLBACK_DISPATCH_STACK</span><span class="p">)</span>
+            <span class="n">_flush_io</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="camonitor"><a class="viewcode-back" href="../../catools.html#cothread.catools.camonitor">[docs]</a><span class="k">def</span> <span class="nf">camonitor</span><span class="p">(</span><span class="n">pvs</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;camonitor(pvs, callback,</span>
-<span class="sd">        events = DBE_VALUE,</span>
+<span class="sd">        events = None,</span>
 <span class="sd">        datatype = None, format = FORMAT_RAW, count = 0,</span>
 <span class="sd">        all_updates = False, notify_disconnect = False)</span>
 
@@ -524,6 +517,8 @@
 <span class="sd">        DBE_LOG         Notify archive value changes</span>
 <span class="sd">        DBE_ALARM       Notify alarm state changes</span>
 <span class="sd">        DBE_PROPERTY    Notify property changes</span>
+
+<span class="sd">        The default mask selected for events depends on the requested format.</span>
 
 <span class="sd">    datatype</span>
 <span class="sd">    format</span>
@@ -566,14 +561,14 @@
     <span class="c"># We are called exactly once, so can consume the context right now.  Note</span>
     <span class="c"># that we have to do some manual reference counting on the user context,</span>
     <span class="c"># as this is a python object that is invisible to the C api.</span>
-    <span class="n">pv</span><span class="p">,</span> <span class="n">as_string</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">usr</span>
+    <span class="n">pv</span><span class="p">,</span> <span class="n">dbr_to_value</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">usr</span>
     <span class="n">ctypes</span><span class="o">.</span><span class="n">pythonapi</span><span class="o">.</span><span class="n">Py_DecRef</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">usr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ECA_NORMAL</span><span class="p">:</span>
-        <span class="n">done</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">dbr</span><span class="o">.</span><span class="n">dbr_to_value</span><span class="p">(</span>
-            <span class="n">args</span><span class="o">.</span><span class="n">raw_dbr</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">pv</span><span class="p">,</span> <span class="n">as_string</span><span class="p">))</span>
+        <span class="n">cothread</span><span class="o">.</span><span class="n">Callback</span><span class="p">(</span><span class="n">done</span><span class="o">.</span><span class="n">Signal</span><span class="p">,</span> <span class="n">dbr_to_value</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">raw_dbr</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">count</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">done</span><span class="o">.</span><span class="n">SignalException</span><span class="p">(</span><span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
+        <span class="n">cothread</span><span class="o">.</span><span class="n">Callback</span><span class="p">(</span><span class="n">done</span><span class="o">.</span><span class="n">SignalException</span><span class="p">,</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
 
 
 <span class="nd">@maybe_throw</span>
@@ -595,27 +590,20 @@
     <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">count</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ca_element_count</span><span class="p">(</span><span class="n">channel</span><span class="p">))</span>
 
-    <span class="c"># If no datatype has been specified, use the channel&#39;s default</span>
-    <span class="k">if</span> <span class="n">datatype</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">datatype</span> <span class="o">=</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ca_field_type</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">DBR_CHAR</span> <span class="ow">and</span> <span class="n">pv</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span><span class="p">:</span>
-            <span class="c"># The default datatype for PVs ending in $ is to return the value as</span>
-            <span class="c"># a string, but we need to check that the data is coming over the</span>
-            <span class="c"># wire as a char array first.</span>
-            <span class="n">datatype</span> <span class="o">=</span> <span class="n">DBR_CHAR_STR</span>
-
     <span class="c"># Assemble the callback context.  Note that we need to explicitly</span>
     <span class="c"># increment the reference count so that the context survives until the</span>
     <span class="c"># callback routine gets to see it.</span>
+    <span class="n">dbrcode</span><span class="p">,</span> <span class="n">dbr_to_value</span> <span class="o">=</span> <span class="n">dbr</span><span class="o">.</span><span class="n">type_to_dbr</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">datatype</span><span class="p">,</span> <span class="n">format</span><span class="p">)</span>
     <span class="n">done</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
-    <span class="n">context</span> <span class="o">=</span> <span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">DBR_CHAR_STR</span><span class="p">,</span> <span class="n">done</span><span class="p">)</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">dbr_to_value</span><span class="p">,</span> <span class="n">done</span><span class="p">)</span>
     <span class="n">ctypes</span><span class="o">.</span><span class="n">pythonapi</span><span class="o">.</span><span class="n">Py_IncRef</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
 
     <span class="c"># Perform the actual put as a non-blocking operation: we wait to be</span>
     <span class="c"># informed of completion, or time out.</span>
     <span class="n">cadef</span><span class="o">.</span><span class="n">ca_array_get_callback</span><span class="p">(</span>
-        <span class="n">dbr</span><span class="o">.</span><span class="n">type_to_dbr</span><span class="p">(</span><span class="n">datatype</span><span class="p">,</span> <span class="n">format</span><span class="p">),</span> <span class="n">count</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span>
+        <span class="n">dbrcode</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span>
         <span class="n">_caget_event_handler</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">py_object</span><span class="p">(</span><span class="n">context</span><span class="p">))</span>
+    <span class="n">_flush_io</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">ca_timeout</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">pv</span><span class="p">)</span>
 
 
@@ -735,22 +723,7 @@
 
 <span class="c"># ----------------------------------------------------------------------------</span>
 <span class="c">#   caput</span>
-
-<span class="c"># Callback dispatching for caput callbacks.</span></div>
-<span class="n">_caput_callback_queue</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">EventQueue</span><span class="p">()</span>
-
-<span class="k">def</span> <span class="nf">_caput_callback_dispatcher</span><span class="p">():</span>
-    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-        <span class="n">callback</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">_caput_callback_queue</span><span class="o">.</span><span class="n">Wait</span><span class="p">()</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">callback</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">print</span> <span class="s">&#39;caput callback on </span><span class="si">%s</span><span class="s"> raised exception&#39;</span> <span class="o">%</span> <span class="n">result</span><span class="o">.</span><span class="n">name</span>
-            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-<span class="n">_caput_callback_dispatcher</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Spawn</span><span class="p">(</span>
-    <span class="n">_caput_callback_dispatcher</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">=</span> <span class="n">CALLBACK_DISPATCH_STACK</span><span class="p">)</span>
-
-
+</div>
 <span class="nd">@cadef.event_handler</span>
 <span class="k">def</span> <span class="nf">_caput_event_handler</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;Event handler for caput with callback completion.  Returns status</span>
@@ -763,11 +736,11 @@
 
     <span class="k">if</span> <span class="n">done</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ECA_NORMAL</span><span class="p">:</span>
-            <span class="n">done</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+            <span class="n">cothread</span><span class="o">.</span><span class="n">Callback</span><span class="p">(</span><span class="n">done</span><span class="o">.</span><span class="n">Signal</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">done</span><span class="o">.</span><span class="n">SignalException</span><span class="p">(</span><span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
+            <span class="n">cothread</span><span class="o">.</span><span class="n">Callback</span><span class="p">(</span><span class="n">done</span><span class="o">.</span><span class="n">SignalException</span><span class="p">,</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">_caput_callback_queue</span><span class="o">.</span><span class="n">Signal</span><span class="p">((</span><span class="n">callback</span><span class="p">,</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">)))</span>
+        <span class="n">cothread</span><span class="o">.</span><span class="n">Callback</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
 
 
 <span class="nd">@maybe_throw</span>
@@ -780,16 +753,11 @@
     <span class="n">channel</span> <span class="o">=</span> <span class="n">_channel_cache</span><span class="p">[</span><span class="n">pv</span><span class="p">]</span>
     <span class="n">channel</span><span class="o">.</span><span class="n">Wait</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
 
-    <span class="c"># Special handling of strings as character arrays, but only if server is</span>
-    <span class="c"># expecting it.</span>
-    <span class="k">if</span> <span class="n">datatype</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">pv</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span> <span class="ow">and</span> \
-            <span class="n">cadef</span><span class="o">.</span><span class="n">ca_field_type</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span> <span class="o">==</span> <span class="n">DBR_CHAR</span><span class="p">:</span>
-        <span class="n">datatype</span> <span class="o">=</span> <span class="n">DBR_CHAR_STR</span>
-
     <span class="c"># Note: the unused value returned below needs to be retained so that</span>
     <span class="c"># dbr_array, a pointer to C memory, has the right lifetime: it has to</span>
     <span class="c"># survive until ca_array_put[_callback] has been called.</span>
-    <span class="n">dbrtype</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">dbr_array</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">dbr</span><span class="o">.</span><span class="n">value_to_dbr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">datatype</span><span class="p">)</span>
+    <span class="n">dbrtype</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">dbr_array</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> \
+        <span class="n">dbr</span><span class="o">.</span><span class="n">value_to_dbr</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">datatype</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">wait</span> <span class="ow">or</span> <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="c"># Assemble the callback context and give it an extra reference count</span>
         <span class="c"># to keep it alive until the callback handler sees it.</span>
@@ -805,11 +773,13 @@
         <span class="n">cadef</span><span class="o">.</span><span class="n">ca_array_put_callback</span><span class="p">(</span>
             <span class="n">dbrtype</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">dbr_array</span><span class="p">,</span>
             <span class="n">_caput_event_handler</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">py_object</span><span class="p">(</span><span class="n">context</span><span class="p">))</span>
+        <span class="n">_flush_io</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">wait</span><span class="p">:</span>
             <span class="n">ca_timeout</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">pv</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c"># Asynchronous caput, just do it now.</span>
         <span class="n">cadef</span><span class="o">.</span><span class="n">ca_array_put</span><span class="p">(</span><span class="n">dbrtype</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">dbr_array</span><span class="p">)</span>
+        <span class="n">_flush_io</span><span class="p">()</span>
 
     <span class="c"># Return a success code for compatibility with throw=False code.</span>
     <span class="k">return</span> <span class="n">ca_nothing</span><span class="p">(</span><span class="n">pv</span><span class="p">)</span>
@@ -1015,16 +985,39 @@
     <span class="c"># can&#39;t safely do *any* ca_ calls once ca_context_destroy() is called!</span>
     <span class="n">_channel_cache</span><span class="o">.</span><span class="n">purge</span><span class="p">()</span>
     <span class="n">cadef</span><span class="o">.</span><span class="n">ca_context_destroy</span><span class="p">()</span>
+    <span class="n">cadef</span><span class="o">.</span><span class="n">ca_flush_io</span><span class="p">()</span>
 
-<span class="n">cadef</span><span class="o">.</span><span class="n">ca_context_create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
+<span class="c"># EPICS Channel Access event dispatching needs to done with a little care.  In</span>
+<span class="c"># previous versions the solution was to repeatedly call ca_pend_event() in</span>
+<span class="c"># polling mode, but this does not appear to be efficient enough when receiving</span>
+<span class="c"># large amounts of data.  Instead we enable preemptive Channel Access callbacks,</span>
+<span class="c"># which means we need to cope with all of our channel access events occuring</span>
+<span class="c"># asynchronously.</span>
+<span class="n">cadef</span><span class="o">.</span><span class="n">ca_context_create</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">_PollChannelAccess</span><span class="p">():</span>
-    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-        <span class="n">cadef</span><span class="o">.</span><span class="n">ca_pend_event</span><span class="p">(</span><span class="mf">1e-9</span><span class="p">)</span>
-        <span class="n">cothread</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="mf">1e-2</span><span class="p">)</span>
-<span class="n">_PollChannelAccess</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Spawn</span><span class="p">(</span>
-    <span class="n">_PollChannelAccess</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">=</span> <span class="n">CA_EVENT_STACK</span><span class="p">)</span>
+<span class="c"># Another delicacy arising from relying on asynchronous CA event dispatching is</span>
+<span class="c"># that we need to manually flush IO events such as caget commands.  To ensure</span>
+<span class="c"># that large blocks of channel access activity really are aggregated we ensure</span>
+<span class="c"># that ca_flush_io() is only called once in any scheduling cycle by requesting</span>
+<span class="c"># IO flushing via a _flush_io_event object.</span>
+<span class="k">class</span> <span class="nc">_FlushIo</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_io_event</span> <span class="o">=</span> <span class="n">cothread</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="n">cothread</span><span class="o">.</span><span class="n">Spawn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dispatch_flush_io</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">=</span> <span class="n">CA_ACTION_STACK</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_dispatch_flush_io</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_flush_io_event</span><span class="o">.</span><span class="n">Wait</span><span class="p">()</span>
+            <span class="n">cadef</span><span class="o">.</span><span class="n">ca_flush_io</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;This should be called after any Channel Access method which generates</span>
+<span class="sd">        buffered requests.  ca_flush_io() will now be called during the next</span>
+<span class="sd">        scheduler cycle.&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_io_event</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+
+<span class="n">_flush_io</span> <span class="o">=</span> <span class="n">_FlushIo</span><span class="p">()</span>
 
 
 <span class="c"># The value of the exception handler below is rather doubtful...</span>
@@ -1032,8 +1025,8 @@
     <span class="nd">@exception_handler</span>
     <span class="k">def</span> <span class="nf">catools_exception</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;print ca exception message&#39;&#39;&#39;</span>
-        <span class="k">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#39;catools_exception:&#39;</span><span class="p">,</span> \
-            <span class="n">args</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ca_message</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">stat</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;catools_exception:&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span> <span class="n">cadef</span><span class="o">.</span><span class="n">ca_message</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">stat</span><span class="p">),</span>
+            <span class="nb">file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="n">cadef</span><span class="o">.</span><span class="n">ca_add_exception_event</span><span class="p">(</span><span class="n">catools_exception</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 </pre></div>
 

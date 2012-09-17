@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,
+# Copyright (C) 2007 James Rowland, 2007-2012 Michael Abbott,
 # Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
@@ -46,18 +46,21 @@ Supports the following methods:
 See the documentation for the individual functions for more details on using
 them.'''
 
+from __future__ import print_function
+
 import os
 import sys
 import atexit
 import traceback
 import ctypes
+import threading
 
-import cothread
-import cadef
-import dbr
+from . import cothread
+from . import cadef
+from . import dbr
 
-from dbr import *
-from cadef import *
+from .dbr import *
+from .cadef import *
 
 __all__ = [
     # The core functions.
@@ -76,12 +79,9 @@ def _check_env(name, default):
 # Stack size definitions
 K = 1024
 
-CA_ACTION_STACK = 16 * K     # Used for one shot CA actions
-
-# For CA notify callbacks by default we use the shared stack as arbitrary
-# processing tends to be done in this context.
-CALLBACK_DISPATCH_STACK = _check_env('CATOOLS_CALLBACK_STACK', 0)
-CA_EVENT_STACK = _check_env('CATOOLS_EVENT_STACK', 512 * K)
+# Miscellaneous channel access operations are created using this stack size.  By
+# default we use the shared stack to avoid accidents.
+CA_ACTION_STACK         = _check_env('CATOOLS_ACTION_STACK', 0)
 
 
 
@@ -123,11 +123,11 @@ def maybe_throw(function):
             # will be raised anyway, which seems fair enough!
             try:
                 return function(pv, *args, **kargs)
-            except ca_nothing, error:
+            except ca_nothing as error:
                 return error
-            except cadef.CAException, error:
+            except cadef.CAException as error:
                 return ca_nothing(pv, error.status)
-            except cadef.Disconnected, error:
+            except cadef.Disconnected:
                 return ca_nothing(pv, cadef.ECA_DISCONN)
 
     # Make sure the wrapped function looks like its original self.
@@ -167,6 +167,9 @@ class Channel(object):
 
         self = cadef.ca_puser(args.chid)
         op = args.op
+        cothread.Callback(self.on_ca_connect_, op)
+
+    def on_ca_connect_(self, op):
         assert op in [cadef.CA_OP_CONN_UP, cadef.CA_OP_CONN_DOWN]
         connected = op == cadef.CA_OP_CONN_UP
 
@@ -192,6 +195,7 @@ class Channel(object):
         # Setting this allows a channel object to autoconvert into the chid
         # when passed to ca_ functions.
         self._as_parameter_ = chid.value
+        _flush_io()
 
     def __del__(self):
         '''Ensures the associated channel access is closed.'''
@@ -219,16 +223,16 @@ class Channel(object):
         self.__subscriptions.remove(subscription)
 
     def Wait(self, timeout = None):
-        '''Waits for the channel to become connected.  Raises a Timeout
-        exception if the timeout expires first.'''
-        ca_timeout(self.__connected, timeout, self.name)
+        '''Waits for the channel to become connected if not already connected.
+        Raises a Timeout exception if the timeout expires first.'''
+        if not self.__connected:
+            ca_timeout(self.__connected, timeout, self.name)
 
 
 class ChannelCache(object):
     '''A cache of all open channels.  If a channel is not present in the
     cache it is automatically opened.  The cache needs to be purged to
     ensure a clean shutdown.'''
-    __slots__ = ['__channels']
 
     def __init__(self):
         self.__channels = {}
@@ -262,7 +266,7 @@ class _Subscription(object):
     __slots__ = [
         'name',             # Name of the PV subscribed to
         'callback',         # The user callback function
-        'as_string',        # Automatic type conversion of data to strings
+        'dbr_to_value',     # Conversion from dbr
         'channel',          # The associated channel object
         '__state',          # Whether the subscription is active
         '_as_parameter_',   # Associated channel access subscription handle
@@ -277,6 +281,18 @@ class _Subscription(object):
     __OPEN    = 1       # Normally active
     __CLOSED  = 2       # Closed but not yet deleted
 
+    # Mapping from format to event mask for default events
+    __default_events = {
+        FORMAT_RAW:  DBE_VALUE,
+        FORMAT_TIME: DBE_VALUE | DBE_ALARM,
+        FORMAT_CTRL: DBE_VALUE | DBE_ALARM | DBE_PROPERTY }
+
+    __lock = threading.Lock()   # Used for update merging.
+
+    # Create our own callback queue so that camonitor() callbacks can be handled
+    # concurrently with other asynchronous callbacks.
+    __Callback = cothread._Callback()
+
     @cadef.event_handler
     def __on_event(args):
         '''This is called each time the subscribed value changes.  As this is
@@ -286,42 +302,60 @@ class _Subscription(object):
 
         if args.status == cadef.ECA_NORMAL:
             # Good data: extract value from the dbr.
-            self.__signal(dbr.dbr_to_value(
-                args.raw_dbr, args.type, args.count, self.channel.name,
-                self.as_string))
+            value = self.dbr_to_value(args.raw_dbr, args.type, args.count)
         elif self.notify_disconnect:
             # Something is wrong: let the subscriber know, but only if
             # they've requested disconnect nofication.
-            self.__signal(ca_nothing(self.channel.name, args.status))
+            value = ca_nothing(self.channel.name, args.status)
+        else:
+            return
+        self.__maybe_signal(value)
+
+    def __maybe_signal(self, value):
+        '''Performs update merging and callback notification if appropriate.'''
+        if self.all_updates:
+            value.update_count = 1
+            self.__Callback(self.__signal, value)
+        else:
+            with self.__lock:
+                self.__value = value
+                if self.__update_count == 0:
+                    self.__Callback(self.__signal, None)
+                self.__update_count += 1
 
     def __signal(self, value):
-        if self.all_updates:
-            # If all_updates is requested then every incoming update directly
-            # generates a corresponding callback call.
-            value.update_count = 1
-            self.__callback_queue.Signal((self, self.callback, value))
-        else:
-            # If merged updates are requested then we hang onto the latest
-            # value and only schedule a callback if there isn't one already
-            # in the queue.
-            self.__value = value
-            if self.__update_count == 0:
-                # First update since last reported.
-                self.__callback_queue.Signal((
-                    self, self.__merged_callback, None))
-            self.__update_count += 1
+        '''Wrapper for performing callbacks safely: only performs the callback
+        if the subscription is open and reports and handles any exceptions that
+        might arise.'''
+        if self.__state == self.__OPEN:
+            if value is None:
+                # This arises from a merged update.
+                with self.__lock:
+                    value = self.__value
+                    value.update_count = self.__update_count
+                    self.__value = None
+                    self.__update_count = 0
+
+            try:
+                self.callback(value)
+            except:
+                # We try and be robust about exceptions in handlers, but to
+                # prevent a perpetual storm of exceptions, we close the
+                # subscription after reporting the problem.
+                print('Subscription %s callback raised exception' % self.name,
+                    file = sys.stderr)
+                traceback.print_exc()
+                print('Subscription %s closed' % self.name, file = sys.stderr)
+                self.close()
+
 
     def _on_connect(self, connected):
         '''This is called each time the connection state of the underlying
         channel changes.  Note that this is also called asynchronously.'''
         if not connected and self.notify_disconnect:
             # Channel has become disconnected: tell the subscriber.
-            self.__signal(ca_nothing(self.channel.name, cadef.ECA_DISCONN))
-
-    def __del__(self):
-        '''On object deletion ensure that the associated subscription is
-        closed.'''
-        self.close()
+            self.__maybe_signal(
+                ca_nothing(self.channel.name, cadef.ECA_DISCONN))
 
     def close(self):
         '''Closes the subscription and releases any associated resources.
@@ -330,27 +364,27 @@ class _Subscription(object):
         if self.__state == self.__OPEN:
             self.channel._remove_subscription(self)
             cadef.ca_clear_subscription(self)
-            del self._as_parameter_
-            del self.channel
-            del self.__value
+            cadef.ca_flush_io()
+            # Delete the callback to avoid possible circular references.
             del self.callback
         self.__state = self.__CLOSED
 
     def __init__(self, name, callback,
-            events = DBE_VALUE,
+            events = None,
             datatype = None, format = FORMAT_RAW, count = 0,
             all_updates = False, notify_disconnect = False):
-        '''Subscription initialisation: callback and context are used to
-        frame values written to the queue;  events selects which types of
-        update are notified;  datatype, format, count and as_string define
-        the format of returned data.'''
+        '''Subscription initialisation.'''
 
         self.name = name
         self.callback = callback
-        self.as_string = datatype == DBR_CHAR_STR
         self.all_updates = all_updates
         self.notify_disconnect = notify_disconnect
         self.__update_count = 0
+
+        # If events not specified then compute appropriate default corresponding
+        # to the requested format.
+        if events is None:
+            events = self.__default_events[format]
 
         # We connect to the channel so that we can be kept informed of
         # connection updates.
@@ -367,16 +401,14 @@ class _Subscription(object):
     def __create_subscription(self, events, datatype, format, count):
         '''Creates the channel subscription with the specified parameters:
         event mask, datatype and format, array count.  Waits for the channel
-        to become connected if datatype is not specified (None).'''
+        to become connected.'''
 
-        if datatype is None:
-            # If no datatype has been specified then try and pick up the
-            # datatype associated with the connected channel.
-            # First wait for the channel to connect
-            self.channel.Wait()
-            datatype = cadef.ca_field_type(self.channel)
+        # Ensure the channel is connected so that type_to_dbr() can discover the
+        # underlying channel type if necessary.
+        self.channel.Wait()
         # Can now convert the datatype request into the subscription datatype.
-        datatype = dbr.type_to_dbr(datatype, format)
+        dbrcode, self.dbr_to_value = \
+            dbr.type_to_dbr(self.channel, datatype, format)
 
         # Finally create the subscription with all the requested properties
         # and hang onto the returned event id as our implicit ctypes
@@ -384,56 +416,17 @@ class _Subscription(object):
         if self.__state == self.__OPENING:
             event_id = ctypes.c_void_p()
             cadef.ca_create_subscription(
-                datatype, count, self.channel, events,
+                dbrcode, count, self.channel, events,
                 self.__on_event, ctypes.py_object(self),
                 ctypes.byref(event_id))
             self._as_parameter_ = event_id.value
             self.__state = self.__OPEN
-
-
-    # By default all subscription events are queued onto this queue which is
-    # dispatched by the callback dispatcher in its own thread.
-    __callback_queue = cothread.EventQueue()
-
-    @classmethod
-    def _callback_dispatcher(cls):
-        '''The default event handler expects a callback and a value on
-        the queue and simply fires the callback.  This runs as a continous
-        background process to dispatch subscription events.'''
-        while True:
-            self, callback, value = cls.__callback_queue.Wait()
-            # Only perform callbacks on open subscriptions.
-            if self.__state == self.__OPEN:
-                try:
-                    callback(value)
-                except:
-                    # We try and be robust about exceptions in handlers, but
-                    # to prevent a perpetual storm of exceptions, we close the
-                    # subscription after reporting the problem.
-                    print 'Subscription %s callback raised exception' % \
-                        self.name
-                    traceback.print_exc()
-                    print 'Subscription %s closed' % self.name
-                    self.close()
-
-    def __merged_callback(self, _):
-        '''Called on notification of update when merging multiple updates.
-        The user's callback is fired with the latest value.'''
-        value = self.__value
-        self.__value = None
-        value.update_count = self.__update_count
-        self.__update_count = 0
-        self.callback(value)
-
-
-# Ensure the callback dispatcher is running.
-_callback_dispatcher = cothread.Spawn(
-    _Subscription._callback_dispatcher, stack_size = CALLBACK_DISPATCH_STACK)
+            _flush_io()
 
 
 def camonitor(pvs, callback, **kargs):
     '''camonitor(pvs, callback,
-        events = DBE_VALUE,
+        events = None,
         datatype = None, format = FORMAT_RAW, count = 0,
         all_updates = False, notify_disconnect = False)
 
@@ -473,6 +466,8 @@ def camonitor(pvs, callback, **kargs):
         DBE_LOG         Notify archive value changes
         DBE_ALARM       Notify alarm state changes
         DBE_PROPERTY    Notify property changes
+
+        The default mask selected for events depends on the requested format.
 
     datatype
     format
@@ -515,14 +510,14 @@ def _caget_event_handler(args):
     # We are called exactly once, so can consume the context right now.  Note
     # that we have to do some manual reference counting on the user context,
     # as this is a python object that is invisible to the C api.
-    pv, as_string, done = args.usr
+    pv, dbr_to_value, done = args.usr
     ctypes.pythonapi.Py_DecRef(args.usr)
 
     if args.status == cadef.ECA_NORMAL:
-        done.Signal(dbr.dbr_to_value(
-            args.raw_dbr, args.type, args.count, pv, as_string))
+        cothread.Callback(done.Signal, dbr_to_value(
+            args.raw_dbr, args.type, args.count))
     else:
-        done.SignalException(ca_nothing(pv, args.status))
+        cothread.Callback(done.SignalException, ca_nothing(pv, args.status))
 
 
 @maybe_throw
@@ -544,27 +539,20 @@ def caget_one(pv, timeout=5, datatype=None, format=FORMAT_RAW, count=0):
     if count > 0:
         count = min(count, cadef.ca_element_count(channel))
 
-    # If no datatype has been specified, use the channel's default
-    if datatype is None:
-        datatype = cadef.ca_field_type(channel)
-        if datatype == DBR_CHAR and pv[-1] == '$':
-            # The default datatype for PVs ending in $ is to return the value as
-            # a string, but we need to check that the data is coming over the
-            # wire as a char array first.
-            datatype = DBR_CHAR_STR
-
     # Assemble the callback context.  Note that we need to explicitly
     # increment the reference count so that the context survives until the
     # callback routine gets to see it.
+    dbrcode, dbr_to_value = dbr.type_to_dbr(channel, datatype, format)
     done = cothread.Event()
-    context = (pv, datatype == DBR_CHAR_STR, done)
+    context = (pv, dbr_to_value, done)
     ctypes.pythonapi.Py_IncRef(context)
 
     # Perform the actual put as a non-blocking operation: we wait to be
     # informed of completion, or time out.
     cadef.ca_array_get_callback(
-        dbr.type_to_dbr(datatype, format), count, channel,
+        dbrcode, count, channel,
         _caget_event_handler, ctypes.py_object(context))
+    _flush_io()
     return ca_timeout(done, timeout, pv)
 
 
@@ -685,21 +673,6 @@ def caget(pvs, **kargs):
 # ----------------------------------------------------------------------------
 #   caput
 
-# Callback dispatching for caput callbacks.
-_caput_callback_queue = cothread.EventQueue()
-
-def _caput_callback_dispatcher():
-    while True:
-        callback, result = _caput_callback_queue.Wait()
-        try:
-            callback(result)
-        except:
-            print 'caput callback on %s raised exception' % result.name
-            traceback.print_exc()
-_caput_callback_dispatcher = cothread.Spawn(
-    _caput_callback_dispatcher, stack_size = CALLBACK_DISPATCH_STACK)
-
-
 @cadef.event_handler
 def _caput_event_handler(args):
     '''Event handler for caput with callback completion.  Returns status
@@ -712,11 +685,11 @@ def _caput_event_handler(args):
 
     if done is not None:
         if args.status == cadef.ECA_NORMAL:
-            done.Signal()
+            cothread.Callback(done.Signal)
         else:
-            done.SignalException(ca_nothing(pv, args.status))
+            cothread.Callback(done.SignalException, ca_nothing(pv, args.status))
     if callback is not None:
-        _caput_callback_queue.Signal((callback, ca_nothing(pv, args.status)))
+        cothread.Callback(callback, ca_nothing(pv, args.status))
 
 
 @maybe_throw
@@ -729,16 +702,11 @@ def caput_one(pv, value, datatype=None, wait=False, timeout=5, callback=None):
     channel = _channel_cache[pv]
     channel.Wait(timeout)
 
-    # Special handling of strings as character arrays, but only if server is
-    # expecting it.
-    if datatype is None and pv[-1] == '$' and \
-            cadef.ca_field_type(channel) == DBR_CHAR:
-        datatype = DBR_CHAR_STR
-
     # Note: the unused value returned below needs to be retained so that
     # dbr_array, a pointer to C memory, has the right lifetime: it has to
     # survive until ca_array_put[_callback] has been called.
-    dbrtype, count, dbr_array, value = dbr.value_to_dbr(value, datatype)
+    dbrtype, count, dbr_array, value = \
+        dbr.value_to_dbr(channel, datatype, value)
     if wait or callback is not None:
         # Assemble the callback context and give it an extra reference count
         # to keep it alive until the callback handler sees it.
@@ -754,11 +722,13 @@ def caput_one(pv, value, datatype=None, wait=False, timeout=5, callback=None):
         cadef.ca_array_put_callback(
             dbrtype, count, channel, dbr_array,
             _caput_event_handler, ctypes.py_object(context))
+        _flush_io()
         if wait:
             ca_timeout(done, timeout, pv)
     else:
         # Asynchronous caput, just do it now.
         cadef.ca_array_put(dbrtype, count, channel, dbr_array)
+        _flush_io()
 
     # Return a success code for compatibility with throw=False code.
     return ca_nothing(pv)
@@ -964,16 +934,39 @@ def _catools_atexit():
     # can't safely do *any* ca_ calls once ca_context_destroy() is called!
     _channel_cache.purge()
     cadef.ca_context_destroy()
+    cadef.ca_flush_io()
 
-cadef.ca_context_create(0)
 
+# EPICS Channel Access event dispatching needs to done with a little care.  In
+# previous versions the solution was to repeatedly call ca_pend_event() in
+# polling mode, but this does not appear to be efficient enough when receiving
+# large amounts of data.  Instead we enable preemptive Channel Access callbacks,
+# which means we need to cope with all of our channel access events occuring
+# asynchronously.
+cadef.ca_context_create(1)
 
-def _PollChannelAccess():
-    while True:
-        cadef.ca_pend_event(1e-9)
-        cothread.Sleep(1e-2)
-_PollChannelAccess = cothread.Spawn(
-    _PollChannelAccess, stack_size = CA_EVENT_STACK)
+# Another delicacy arising from relying on asynchronous CA event dispatching is
+# that we need to manually flush IO events such as caget commands.  To ensure
+# that large blocks of channel access activity really are aggregated we ensure
+# that ca_flush_io() is only called once in any scheduling cycle by requesting
+# IO flushing via a _flush_io_event object.
+class _FlushIo:
+    def __init__(self):
+        self._flush_io_event = cothread.Event()
+        cothread.Spawn(self._dispatch_flush_io, stack_size = CA_ACTION_STACK)
+
+    def _dispatch_flush_io(self):
+        while True:
+            self._flush_io_event.Wait()
+            cadef.ca_flush_io()
+
+    def __call__(self):
+        '''This should be called after any Channel Access method which generates
+        buffered requests.  ca_flush_io() will now be called during the next
+        scheduler cycle.'''
+        self._flush_io_event.Signal()
+
+_flush_io = _FlushIo()
 
 
 # The value of the exception handler below is rather doubtful...
@@ -981,6 +974,6 @@ if False:
     @exception_handler
     def catools_exception(args):
         '''print ca exception message'''
-        print >> sys.stderr, 'catools_exception:', \
-            args.ctx, cadef.ca_message(args.stat)
+        print('catools_exception:', args.ctx, cadef.ca_message(args.stat),
+            file = sys.stderr)
     cadef.ca_add_exception_event(catools_exception, 0)

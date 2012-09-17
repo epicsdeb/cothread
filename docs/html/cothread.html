@@ -424,7 +424,7 @@ Calling <a class="reference internal" href="#cothread.EventQueue.Wait" title="co
 <p>Example code using iteration over an <a class="reference internal" href="#cothread.EventQueue" title="cothread.EventQueue"><tt class="xref py py-class docutils literal"><span class="pre">EventQueue</span></tt></a>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">consumer</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">print</span> <span class="s">&#39;consumed&#39;</span><span class="p">,</span> <span class="n">x</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;consumed&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 
 <span class="n">eq</span> <span class="o">=</span> <span class="n">EventQueue</span><span class="p">()</span>
 <span class="n">Spawn</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">eq</span><span class="p">)</span>
@@ -443,7 +443,9 @@ Calling <a class="reference internal" href="#cothread.EventQueue.Wait" title="co
 is designed to be used to communicate between a Python thread outside of
 the cothread library and a cothread.  Communication can occur in either
 direction: an outside thread can call <tt class="xref py py-meth docutils literal"><span class="pre">Signal()</span></tt> on a threaded event
-queue while a cothread calls <tt class="xref py py-meth docutils literal"><span class="pre">Wait()</span></tt>, or vice versa.</p>
+queue while a cothread calls <tt class="xref py py-meth docutils literal"><span class="pre">Wait()</span></tt>, or vice versa.  Note however that
+for communicating from Python threads to cothread it is more efficient to
+use <a class="reference internal" href="#cothread.Callback" title="cothread.Callback"><tt class="xref py py-func docutils literal"><span class="pre">Callback()</span></tt></a>.</p>
 <p>If a thread calls <tt class="xref py py-meth docutils literal"><span class="pre">Wait()</span></tt> it will block until a cothread (or another
 thread) calls <tt class="xref py py-meth docutils literal"><span class="pre">Signal()</span></tt>.  If this is undesirable then the field
 <tt class="xref py py-attr docutils literal"><span class="pre">wait_descriptor</span></tt> can be waited on using the standard <a class="reference internal" href="#cothread.select" title="cothread.select"><tt class="xref py py-func docutils literal"><span class="pre">select()</span></tt></a>
@@ -519,16 +521,27 @@ change from cothread 2.0 and earlier.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="cothread.Callback">
+<tt class="descclassname">cothread.</tt><tt class="descname">Callback</tt><big>(</big><em>action</em>, <em>*args</em><big>)</big><a class="headerlink" href="#cothread.Callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function can be called from any Python thread to arrange for
+<tt class="docutils literal"><span class="pre">action(*args)</span></tt> to be called in the cothread&#8217;s own thread.</p>
+<p>Note that all callbacks are called in sequence and so any individual
+<tt class="docutils literal"><span class="pre">action()</span></tt> should return as soon as possible to avoid blocking subsequent
+callbacks &#8211; if more work needs to be done, call <tt class="docutils literal"><span class="pre">Spawn()</span></tt>.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="cothread.iqt">
-<tt class="descclassname">cothread.</tt><tt class="descname">iqt</tt><big>(</big><em>poll_interval=0.05</em>, <em>use_timer=True</em>, <em>argv=sys.argv</em><big>)</big><a class="reference internal" href="_modules/cothread/input_hook.html#iqt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cothread.iqt" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">cothread.</tt><tt class="descname">iqt</tt><big>(</big><em>poll_interval=0.05</em>, <em>run_exec=True</em>, <em>argv=None</em><big>)</big><a class="reference internal" href="_modules/cothread/input_hook.html#iqt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cothread.iqt" title="Permalink to this definition">¶</a></dt>
 <dd><p>If Qt is to be used then this routine must be called during initialisation
 to enable the Qt event loop and create the initial Qt application instance.
 The Qt application instance is returned.</p>
 <p>The normal Qt event hook does not work correctly with modal dialogs (because
-they run their own message loops) &#8211; typically either a modal window will be
-closed immediately, or else will block the the scheduling of other
-cothreads, depending on whether <cite>use_timer</cite> is <tt class="xref py py-const docutils literal"><span class="pre">False</span></tt> or
-<tt class="xref py py-const docutils literal"><span class="pre">True</span></tt>.</p>
+they run their own message loops) &#8211; typically a modal window will block the
+the scheduling of other cothreads.</p>
+<p>If <a class="reference internal" href="#module-cothread" title="cothread"><tt class="xref py py-mod docutils literal"><span class="pre">cothread</span></tt></a> is used in a context where there is no control over the
+Qt event loop then <cite>run_exec</cite> can be set to <tt class="xref py py-const docutils literal"><span class="pre">False</span></tt> to ensure that
+<a class="reference internal" href="#module-cothread" title="cothread"><tt class="xref py py-mod docutils literal"><span class="pre">cothread</span></tt></a> doesn&#8217;t try to run the event loop.</p>
 </dd></dl>
 
 <div class="section" id="coselect-and-cosocket-functions">

@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2007 James Rowland, 2007-2010 Michael Abbott,
+# Copyright (C) 2007 James Rowland, 2007-2012 Michael Abbott,
 # Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
@@ -31,6 +31,8 @@
 # particular system) is somewhat involved the work is gathered into this file.
 # This file can also be run as a standalone script to discover the path to
 # libca.
+
+from __future__ import print_function
 
 import ctypes
 import platform
@@ -69,7 +71,7 @@ def _libca_path(load_libca_path):
     if load_libca_path:
         try:
             # If libca_path has been defined go with that
-            from libca_path import libca_path
+            from .libca_path import libca_path
             return libca_path
         except ImportError:
             pass
@@ -106,8 +108,8 @@ if __name__ == '__main__':
     # If run standalone we are a helper script.  Write out the relevant
     # definitions for the use of our caller.
     libca_path = _libca_path(False)
-    print 'CATOOLS_LIBCA_PATH=\'%s\'' % libca_path
-    print 'LIB_FILES=\'%s\'' % ' '.join(lib_files)
+    print('CATOOLS_LIBCA_PATH=\'%s\'' % libca_path)
+    print('LIB_FILES=\'%s\'' % ' '.join(lib_files))
 
 else:
     # Load the library (or libraries).

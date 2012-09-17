@@ -1,6 +1,6 @@
 # This file is part of the Diamond cothread library.
 #
-# Copyright (C) 2011 Michael Abbott, Diamond Light Source Ltd.
+# Copyright (C) 2011-2012 Michael Abbott, Diamond Light Source Ltd.
 #
 # The Diamond cothread library is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -32,7 +32,7 @@ standard socket module.'''
 import os
 import errno
 
-import coselect
+from . import coselect
 import socket as _socket
 
 
@@ -87,7 +87,7 @@ class socket:
         # before discovering the true result.
         try:
             self.__socket.connect(address)
-        except _socket.error, error:
+        except _socket.error as error:
             if error.errno != errno.EINPROGRESS:
                 raise
         self.__poll(coselect.POLLOUT)
@@ -99,7 +99,7 @@ class socket:
         try:
             self.connect(address)
             return 0
-        except _socket.error, error:
+        except _socket.error as error:
             return error.errno
 
 
@@ -111,7 +111,7 @@ class socket:
         while True:
             try:
                 return action(*args)
-            except _socket.error, error:
+            except _socket.error as error:
                 if error.errno != errno.EAGAIN:
                     raise
             self.__poll(poll)
