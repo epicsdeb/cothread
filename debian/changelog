@@ -1,3 +1,9 @@
+cothread (2.8-2) unstable; urgency=low
+
+  * Python <2.6 no longer supported
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Tue, 18 Sep 2012 09:35:16 -0400
+
 cothread (2.8-1) unstable; urgency=low
 
   * New upstream version
