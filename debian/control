@@ -5,7 +5,7 @@ Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
 Build-Depends: debhelper (>= 7),
                python-setuptools,
                python-all-dev, python-all-dbg, python-central (>= 0.6),
-               python-numpy, libepics3.14.11,
+               python-numpy, libepics3.14.12,
                python-sphinx,
 XS-Python-Version: >= 2.6
 Standards-Version: 3.8.0
@@ -15,7 +15,7 @@ Package: python-cothread
 Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
-         libepics3.14.11
+         libepics3.14.12
 Conflicts: python-cothread-doc (<< 1.15)
 XB-Python-Version: ${python:Versions}
 Suggests: python-cothread-doc

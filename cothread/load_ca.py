@@ -48,7 +48,7 @@ if system == 'Windows':
 elif system == 'Darwin':
     lib_files = ['libca.dylib']
 else:
-    lib_files = ['libca.so.3.14.11']
+    lib_files = ['libca.so.3.14.12']
 
 
 def _libca_path(load_libca_path):
