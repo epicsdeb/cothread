@@ -32,95 +32,49 @@
 # This file can also be run as a standalone script to discover the path to
 # libca.
 
+# Original version replaced by Debian specific version
+# Problems with library detection should therefore be
+# reported to mdavidsaver@bnl.gov
+
 from __future__ import print_function
 
 import ctypes
 import platform
 import os
 
-
-# Figure out the libraries that need to be loaded and the loading method.
 load_library = ctypes.cdll.LoadLibrary
 system = platform.system()
-if system == 'Windows':
-    load_library = ctypes.windll.LoadLibrary
-    lib_files = ['Com.dll', 'ca.dll']
-elif system == 'Darwin':
-    lib_files = ['libca.dylib']
-else:
-    lib_files = ['libca.so.3.14.12']
+
+if system!='Linux':
+    raise OSError('This version of cothread has been patched in a way which only works on Linux')
 
 
-def _libca_path(load_libca_path):
-    # We look for libca in a variety of different places, searched in order:
-    #
-    # 1. Firstly if CATOOLS_LIBCA_PATH is set in the environment we take that as
-    #    gospel.  This allows the remaining search to be overridden.
-    # 2  If the libca_path module is present we accept the value it defines.
-    # 3. Check for local copies of the libca file(s).
-    # 4. Finally check for EPICS_BASE and optionally EPICS_HOST_ARCH, which we
-    #    normally guess if not specified.
+# Known to be ABI compatible SO names for libca
+# Extend the list of directories search in the usual way (eg. LD_LIBRARY_PATH)
+libnames = [
+	'libca.so.3.14.11',
+	'libca.so.3.14.12',
+	'libca.so.3.14.12.3',
+]
+# Allow user to provide additional names (eg "libca.so.3.15:libca.so.3.15.1")
+# These are checked first.
+libnames = filter(len, os.environ.get('LIBCA_NAMES',"").split(':') ) + libnames
 
-    # First allow a forced override
-    libca_path = os.environ.get('CATOOLS_LIBCA_PATH')
-    if libca_path:
-        return libca_path
-
-    # Next import from configuration file if present, unless this has been
-    # disabled.
-    if load_libca_path:
+def findca():
+    for name in libnames:
         try:
-            # If libca_path has been defined go with that
-            from .libca_path import libca_path
-            return libca_path
-        except ImportError:
-            pass
+            lib = load_library(name)
+            return (lib, name)
+        except OSError:
+            pass # file didn't exist
+    raise OSError("""Couldn't find libca.
+Looked for: %s
+If libca is installed in an uncommon location try setting LD_LIBRARY_PATH
+in your environment.  If your libca has a different (or no) SONAME then
+Set LIBCA_NAMES to a colon seperated list of SONAMEs.
+"""%(', '.join(libnames)))
 
-    # If no libca_path, how about local copies of the files?
-    libca_path = os.path.abspath(os.path.dirname(__file__))
-    if os.access(os.path.join(libca_path, lib_files[-1]), os.R_OK):
-        # Yes, there seems to be something locally installed.
-        return libca_path
+libca, libca_name = findca()
 
-    # No local install, no local configuration, no override.  Try for standard
-    # environment variable configuration instead.
-    epics_base = os.environ['EPICS_BASE']
-    epics_host_arch = os.environ.get('EPICS_HOST_ARCH')
-    if not epics_host_arch:
-        # Mapping from host architecture to EPICS host architecture name can be
-        # done with a little careful guesswork.  As EPICS architecture names are
-        # a little arbitrary this isn't guaranteed to work.
-        system_map = {
-            ('Linux',   '32bit', 'i386'):   'linux-x86',
-            ('Linux',   '32bit', 'i686'):   'linux-x86',
-            ('Linux',   '64bit', 'x86_64'): 'linux-x86_64',
-            ('Darwin',  '64bit', 'i386'):   'darwin-x86',
-            ('Windows', '32bit', 'x86'):    'win32-x86',
-            ('Windows', '64bit', '????'):   'windows-x64',  # Not quite yet!
-        }
-        bits = platform.architecture()[0]
-        machine = platform.machine()
-        epics_host_arch = system_map[(system, bits, machine)]
-    return os.path.join(epics_base, 'lib', epics_host_arch)
-
-
-if __name__ == '__main__':
-    # If run standalone we are a helper script.  Write out the relevant
-    # definitions for the use of our caller.
-    libca_path = _libca_path(False)
-    print('CATOOLS_LIBCA_PATH=\'%s\'' % libca_path)
-    print('LIB_FILES=\'%s\'' % ' '.join(lib_files))
-
-else:
-    # Load the library (or libraries).
-    try:
-        # First try loading the libraries directly without searching anywhere.
-        # In this case we'll pick up from the path or anything already loaded
-        # into the interpreter.
-        for lib in lib_files:
-            libca = load_library(lib)
-    except OSError:
-        # Ok, now go searching.  _libca_path() has all the tricks.
-        libca_path = _libca_path(True)
-        for lib in lib_files:
-            libca = load_library(os.path.join(libca_path, lib))
+if __name__=='__main__':
+    print("Found libca as: '%s'"%libca_name)
