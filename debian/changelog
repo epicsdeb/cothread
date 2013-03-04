@@ -1,3 +1,9 @@
+cothread (2.8-4) unstable; urgency=low
+
+  * Forgot to update dependencies
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 04 Mar 2013 12:15:17 -0500
+
 cothread (2.8-3) unstable; urgency=low
 
   * more accomidating libca search
