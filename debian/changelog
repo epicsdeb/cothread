@@ -1,3 +1,11 @@
+cothread (2.8-3) unstable; urgency=low
+
+  * more accomidating libca search
+     Looks for libca.so.3.14.11, libca.so.3.14.12, and libca.so.3.14.12.3
+     Additional names can be given from the environment with LIBCA_NAMES.
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 04 Mar 2013 12:01:16 -0500
+
 cothread (2.8-2.1) unstable; urgency=low
 
   * Use epics 3.14.12
