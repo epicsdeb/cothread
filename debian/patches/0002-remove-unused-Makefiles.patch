@@ -1,0 +1,81 @@
+From: Michael Davidsaver <mdavidsaver@bnl.gov>
+Date: Sat, 4 Oct 2014 12:13:32 -0400
+Subject: remove unused Makefiles
+
+---
+ Makefile        | 48 ------------------------------------------------
+ Makefile.config | 10 ----------
+ 2 files changed, 58 deletions(-)
+ delete mode 100644 Makefile
+ delete mode 100644 Makefile.config
+
+diff --git a/Makefile b/Makefile
+deleted file mode 100644
+index d6331df..0000000
+--- a/Makefile
++++ /dev/null
+@@ -1,48 +0,0 @@
+-TOP = .
+-
+-# This includes Makefile.private which is written by the make system, before
+-# defining sensible defaults for all the symbols here.
+-include $(TOP)/Makefile.config
+-
+-# Extra configuration dependencies.
+-DEPENDENCIES = \
+-    $(wildcard cothread/*.py cothread/*/*.py context/*.c context/*.h)
+-
+-
+-default: dist docs
+-
+-local: cothread/_coroutine.so
+-
+-dist: setup.py $(DEPENDENCIES) cothread/libca_path.py
+-	MODULEVER=$(MODULEVER) $(PYTHON) setup.py bdist_egg
+-	touch dist
+-
+-# Clean the module
+-clean: clean_docs
+-	$(PYTHON) setup.py clean
+-	-rm -rf build dist *egg-info installed.files cothread/libca_path.py
+-	-find -name '*.pyc' -exec rm {} \;
+-	rm -f cothread/*.so
+-
+-# Install the built egg
+-install: dist
+-	$(PYTHON) setup.py easy_install -m \
+-            --record=installed.files \
+-            --install-dir=$(INSTALL_DIR) \
+-            --script-dir=$(SCRIPT_DIR) dist/*.egg
+-
+-docs: cothread/_coroutine.so
+-	sphinx-build -b html docs docs/html
+-
+-clean_docs:
+-	rm -rf docs/html
+-
+-.PHONY: default clean install docs clean_docs local
+-
+-cothread/libca_path.py:
+-	EVAL="$$($(PYTHON) cothread/load_ca.py)"  && \
+-        eval "$$EVAL"  && \
+-        echo "libca_path = '$$CATOOLS_LIBCA_PATH'" >$@
+-
+-cothread/_coroutine.so: $(wildcard context/*.c context/*.h)
+-	$(PYTHON) setup.py build_ext -i
+diff --git a/Makefile.config b/Makefile.config
+deleted file mode 100644
+index d8bde6b..0000000
+--- a/Makefile.config
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# Specify defaults for testing
+-PREFIX := $(shell pwd)/prefix
+-PYTHON = $(shell readlink -f $$(which dls-python))
+-SCRIPT_DIR = $(PREFIX)/bin
+-PVER = $(shell $(PYTHON) -c 'import sys; print "%d.%d" % sys.version_info[0:2]')
+-INSTALL_DIR = $(PREFIX)/lib/python$(PVER)/site-packages
+-MODULEVER = 0.0
+-
+-# Override with any release info
+--include $(TOP)/Makefile.private

@@ -1,0 +1,316 @@
+From: Michael Davidsaver <mdavidsaver@bnl.gov>
+Date: Sat, 4 Oct 2014 12:54:48 -0400
+Subject: fix script interpreter
+
+use distro default /usr/bin/python3
+---
+ context/tests/coco.py         | 2 +-
+ context/tests/leak.py         | 2 +-
+ cothread/tools/pvtree.py      | 2 +-
+ examples/caget.py             | 2 +-
+ examples/camonitor.py         | 2 +-
+ examples/caput.py             | 2 +-
+ examples/qt_monitor.py        | 2 +-
+ examples/scope_epics.py       | 2 +-
+ examples/simple.py            | 2 +-
+ setup.py                      | 2 +-
+ tests/caget_failure.py        | 2 +-
+ tests/caget_structure.py      | 2 +-
+ tests/callback.py             | 2 +-
+ tests/camonitor.big.py        | 2 +-
+ tests/camonitor_test.py       | 2 +-
+ tests/control-c.py            | 2 +-
+ tests/interactive.py          | 2 +-
+ tests/late_qt.py              | 2 +-
+ tests/leaktest.py             | 2 +-
+ tests/load.py                 | 2 +-
+ tests/plottest.py             | 2 +-
+ tests/recursion-test.py       | 2 +-
+ tests/simple-modal.py         | 2 +-
+ tests/test-modal.py           | 2 +-
+ tests/test-select.py          | 2 +-
+ tests/testthreads.py          | 2 +-
+ tests/timing-test.py          | 2 +-
+ tests/timing/test_cothread.py | 2 +-
+ 28 files changed, 28 insertions(+), 28 deletions(-)
+
+diff --git a/context/tests/coco.py b/context/tests/coco.py
+index 57bdf23..4342cd3 100755
+--- a/context/tests/coco.py
++++ b/context/tests/coco.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import sys, os
+ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+diff --git a/context/tests/leak.py b/context/tests/leak.py
+index 83217bc..05be0d1 100755
+--- a/context/tests/leak.py
++++ b/context/tests/leak.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import sys, os
+ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+diff --git a/cothread/tools/pvtree.py b/cothread/tools/pvtree.py
+index 4b18c24..bf6f1de 100755
+--- a/cothread/tools/pvtree.py
++++ b/cothread/tools/pvtree.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Simple tool for viewing the chain of PV dependencies.
+ 
+diff --git a/examples/caget.py b/examples/caget.py
+index 3fbc564..b953fc4 100755
+--- a/examples/caget.py
++++ b/examples/caget.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ # Simple example of caget tool using cothread.
+ 
+ import sys
+diff --git a/examples/camonitor.py b/examples/camonitor.py
+index 42a87da..c6c439c 100755
+--- a/examples/camonitor.py
++++ b/examples/camonitor.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ # Simple example of camonitor tool catools library
+ 
+ import sys
+diff --git a/examples/caput.py b/examples/caput.py
+index c5c01e2..0082ba3 100755
+--- a/examples/caput.py
++++ b/examples/caput.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ # Simple example of caget tool using cothread.
+ 
+ import require
+diff --git a/examples/qt_monitor.py b/examples/qt_monitor.py
+index 7ed9a45..992851c 100755
+--- a/examples/qt_monitor.py
++++ b/examples/qt_monitor.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''minimal Qt example'''
+ 
+diff --git a/examples/scope_epics.py b/examples/scope_epics.py
+index 5b43ab0..aeeee32 100755
+--- a/examples/scope_epics.py
++++ b/examples/scope_epics.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Form Example with Monitor'''
+ 
+diff --git a/examples/simple.py b/examples/simple.py
+index d6cfd49..58ff87b 100755
+--- a/examples/simple.py
++++ b/examples/simple.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Channel Access Example'''
+ 
+diff --git a/setup.py b/setup.py
+index cf1a73d..ec847e1 100755
+--- a/setup.py
++++ b/setup.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import glob
+ import os
+diff --git a/tests/caget_failure.py b/tests/caget_failure.py
+index bb0d373..4854e64 100755
+--- a/tests/caget_failure.py
++++ b/tests/caget_failure.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Channel Access Get Structure'''
+ 
+diff --git a/tests/caget_structure.py b/tests/caget_structure.py
+index bc39c7f..2821c16 100755
+--- a/tests/caget_structure.py
++++ b/tests/caget_structure.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Channel Access Get Structure'''
+ 
+diff --git a/tests/callback.py b/tests/callback.py
+index 5dda2ed..3f9b861 100755
+--- a/tests/callback.py
++++ b/tests/callback.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Test Callback mechanism
+ 
+diff --git a/tests/camonitor.big.py b/tests/camonitor.big.py
+index c5ff6fa..58be578 100755
+--- a/tests/camonitor.big.py
++++ b/tests/camonitor.big.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ # Simple example of camonitor tool using greenlets etcetera.
+ 
+ import sys
+diff --git a/tests/camonitor_test.py b/tests/camonitor_test.py
+index 90c97b1..077b66a 100755
+--- a/tests/camonitor_test.py
++++ b/tests/camonitor_test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''camonitor minimal example'''
+ 
+diff --git a/tests/control-c.py b/tests/control-c.py
+index af10a01..f6ca22d 100755
+--- a/tests/control-c.py
++++ b/tests/control-c.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ import cothread
+diff --git a/tests/interactive.py b/tests/interactive.py
+index 764bd59..bee6272 100755
+--- a/tests/interactive.py
++++ b/tests/interactive.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import os
+ 
+diff --git a/tests/late_qt.py b/tests/late_qt.py
+index 317c812..60c2028 100755
+--- a/tests/late_qt.py
++++ b/tests/late_qt.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Designed to test late loading of Qt input hook.
+ 
+diff --git a/tests/leaktest.py b/tests/leaktest.py
+index 1ab1084..b05edc5 100755
+--- a/tests/leaktest.py
++++ b/tests/leaktest.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Tests for memory leaks.'''
+ 
+diff --git a/tests/load.py b/tests/load.py
+index 7f24b57..5618a01 100755
+--- a/tests/load.py
++++ b/tests/load.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ 
+diff --git a/tests/plottest.py b/tests/plottest.py
+index 4a17643..8bdfde4 100755
+--- a/tests/plottest.py
++++ b/tests/plottest.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import sys
+ 
+diff --git a/tests/recursion-test.py b/tests/recursion-test.py
+index f37c426..31d657b 100755
+--- a/tests/recursion-test.py
++++ b/tests/recursion-test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Simple recursion overflow test, checks that guard pages do indeed guard
+ # against stack overflow (by generating a segmentation fault).
+diff --git a/tests/simple-modal.py b/tests/simple-modal.py
+index 0ffd38e..c87b780 100755
+--- a/tests/simple-modal.py
++++ b/tests/simple-modal.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Simple demonstration that timers and modal windows interact badly: if a modal
+ # window is created from within a timer then the timer is killed and the exec()
+diff --git a/tests/test-modal.py b/tests/test-modal.py
+index d3c6ef1..a6236f0 100755
+--- a/tests/test-modal.py
++++ b/tests/test-modal.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ import cothread
+diff --git a/tests/test-select.py b/tests/test-select.py
+index a67a1a6..a7716b6 100755
+--- a/tests/test-select.py
++++ b/tests/test-select.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Testing coselect
+ 
+diff --git a/tests/testthreads.py b/tests/testthreads.py
+index 50823e9..d299e8c 100755
+--- a/tests/testthreads.py
++++ b/tests/testthreads.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ from cothread.cothread import *
+diff --git a/tests/timing-test.py b/tests/timing-test.py
+index 15ecac7..d46ae34 100755
+--- a/tests/timing-test.py
++++ b/tests/timing-test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import greenlet
+ import time
+diff --git a/tests/timing/test_cothread.py b/tests/timing/test_cothread.py
+index b77c07e..48f7137 100755
+--- a/tests/timing/test_cothread.py
++++ b/tests/timing/test_cothread.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import time
+ import sys
