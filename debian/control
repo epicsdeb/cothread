@@ -1,25 +1,25 @@
-Source: cothread
+Source: cothread3
 Section: python
 Priority: optional
 Maintainer: Michael Davidsaver <mdavidsaver@bnl.gov>
-Build-Depends: debhelper (>= 7),
-               python-setuptools,
-               python-all-dev, python-all-dbg, python-central (>= 0.6),
-               python-numpy,
-               python-sphinx,
+Build-Depends: debhelper (>= 7.0.50~), dh-python,
+               python3-setuptools,
+               python3-all-dev, python3-all-dbg, python-central (>= 0.6),
+               python3-numpy,
+               python3-sphinx,
                libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3,
-XS-Python-Version: >= 2.6
-Standards-Version: 3.8.0
+XS-Python-Version: >= 3.2
+XS-Python3-Version: >= 3.2
+Standards-Version: 3.9.4
 Homepage: http://controls.diamond.ac.uk/downloads/python/cothread/
 
-Package: python-cothread
+Package: python3-cothread
 Architecture: any
-Depends: ${shlibs:Depends}, ${python:Depends},
-         python-setuptools, python-numpy,
+Depends: ${shlibs:Depends}, ${python:Depends}, ${misc:Depends},
+         python3-setuptools, python3-numpy,
          libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3,
-Conflicts: python-cothread-doc (<< 1.15)
 XB-Python-Version: ${python:Versions}
-Suggests: python-cothread-doc
+XB-Python3-Version: ${python3:Versions}
 Description: A co-routine implimentation w/ EPICS CA
  An implimentation of co-routines in Python with
  a ctypes wrapper for the EPICS libca client library
