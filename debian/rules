@@ -5,7 +5,7 @@ export DH_VERBOSE=1
 PYVERS=$(shell pyversions -vr debian/control)
 
 %:
-	dh $@
+	dh -Spython_distutils $@
 binary: binary-arch binary-indep
 binary-arch binary-indep: install
 install: build
