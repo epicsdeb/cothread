@@ -1,0 +1,239 @@
+From: Michael Davidsaver <mdavidsaver@bnl.gov>
+Date: Sat, 4 Oct 2014 12:12:46 -0400
+Subject: fix script interpreter
+
+use distro default /usr/bin/python
+---
+ context/tests/coco.py    | 2 +-
+ context/tests/leak.py    | 2 +-
+ cothread/tools/pvtree.py | 2 +-
+ examples/camonitor.py    | 2 +-
+ examples/caput.py        | 2 +-
+ examples/qt_monitor.py   | 2 +-
+ examples/scope_epics.py  | 2 +-
+ examples/simple.py       | 2 +-
+ setup.py                 | 2 +-
+ tests/caget_failure.py   | 2 +-
+ tests/caget_structure.py | 2 +-
+ tests/camonitor.big.py   | 2 +-
+ tests/camonitor_test.py  | 2 +-
+ tests/interactive.py     | 2 +-
+ tests/leaktest.py        | 2 +-
+ tests/load.py            | 2 +-
+ tests/plottest.py        | 2 +-
+ tests/test-modal.py      | 2 +-
+ tests/test-select.py     | 2 +-
+ tests/testthreads.py     | 2 +-
+ tests/timing-test.py     | 2 +-
+ 21 files changed, 21 insertions(+), 21 deletions(-)
+
+diff --git a/context/tests/coco.py b/context/tests/coco.py
+index 4464d9b..6661a07 100755
+--- a/context/tests/coco.py
++++ b/context/tests/coco.py
+@@ -1,4 +1,4 @@
+-#!/dls_sw/tools/python2.4-debug/bin/python2.4
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/context/tests/leak.py b/context/tests/leak.py
+index 8c886dd..b852863 100755
+--- a/context/tests/leak.py
++++ b/context/tests/leak.py
+@@ -1,4 +1,4 @@
+-#!/dls_sw/tools/python2.4-debug/bin/python2.4
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/cothread/tools/pvtree.py b/cothread/tools/pvtree.py
+index 2e6c4a9..209aba8 100755
+--- a/cothread/tools/pvtree.py
++++ b/cothread/tools/pvtree.py
+@@ -1,4 +1,4 @@
+-#!/bin/env dls-python
++#!/usr/bin/python
+ 
+ # Simple tool for viewing the chain of PV dependencies.
+ 
+diff --git a/examples/camonitor.py b/examples/camonitor.py
+index 61ef6a7..65fff10 100755
+--- a/examples/camonitor.py
++++ b/examples/camonitor.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/python
+ # Simple example of camonitor tool catools library
+ 
+ from __future__ import print_function
+diff --git a/examples/caput.py b/examples/caput.py
+index fc6ce08..f4a0849 100755
+--- a/examples/caput.py
++++ b/examples/caput.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/python
+ # Simple example of caget tool using cothread.
+ 
+ from __future__ import print_function
+diff --git a/examples/qt_monitor.py b/examples/qt_monitor.py
+index 25d26d8..eafc357 100755
+--- a/examples/qt_monitor.py
++++ b/examples/qt_monitor.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/python
+ 
+ '''minimal Qt example'''
+ 
+diff --git a/examples/scope_epics.py b/examples/scope_epics.py
+index fb0e65c..df62760 100755
+--- a/examples/scope_epics.py
++++ b/examples/scope_epics.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/python
+ 
+ '''Form Example with Monitor'''
+ 
+diff --git a/examples/simple.py b/examples/simple.py
+index 3116629..6902758 100755
+--- a/examples/simple.py
++++ b/examples/simple.py
+@@ -1,4 +1,4 @@
+-#!/bin/env dls-python2.6
++#!/usr/bin/python
+ 
+ '''Channel Access Example'''
+ 
+diff --git a/setup.py b/setup.py
+index ed9e807..ec13e77 100755
+--- a/setup.py
++++ b/setup.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/python
+ 
+ import glob
+ import os
+diff --git a/tests/caget_failure.py b/tests/caget_failure.py
+index 5a2b486..08bea8f 100755
+--- a/tests/caget_failure.py
++++ b/tests/caget_failure.py
+@@ -1,4 +1,4 @@
+-#!/bin/env python2.6
++#!/usr/bin/python
+ 
+ '''Channel Access Get Structure'''
+ 
+diff --git a/tests/caget_structure.py b/tests/caget_structure.py
+index 1d786a7..fb6ca1b 100755
+--- a/tests/caget_structure.py
++++ b/tests/caget_structure.py
+@@ -1,4 +1,4 @@
+-#!/bin/env python2.6
++#!/usr/bin/python
+ 
+ '''Channel Access Get Structure'''
+ 
+diff --git a/tests/camonitor.big.py b/tests/camonitor.big.py
+index 7615dcb..1f90d6b 100755
+--- a/tests/camonitor.big.py
++++ b/tests/camonitor.big.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ # Simple example of camonitor tool using greenlets etcetera.
+ 
+ from __future__ import print_function
+diff --git a/tests/camonitor_test.py b/tests/camonitor_test.py
+index 6ff3b61..56d11c0 100755
+--- a/tests/camonitor_test.py
++++ b/tests/camonitor_test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ '''camonitor minimal example'''
+ 
+diff --git a/tests/interactive.py b/tests/interactive.py
+index 5e7f0fc..13a3bea 100755
+--- a/tests/interactive.py
++++ b/tests/interactive.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/tests/leaktest.py b/tests/leaktest.py
+index 392afb8..ae88303 100755
+--- a/tests/leaktest.py
++++ b/tests/leaktest.py
+@@ -1,4 +1,4 @@
+-#!/dls_sw/tools/python2.4-debug/bin/python2.4
++#!/usr/bin/python
+ 
+ '''Tests for memory leaks.'''
+ 
+diff --git a/tests/load.py b/tests/load.py
+index eee4a02..7b53cb4 100755
+--- a/tests/load.py
++++ b/tests/load.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/tests/plottest.py b/tests/plottest.py
+index 8da9e93..a9e8797 100755
+--- a/tests/plottest.py
++++ b/tests/plottest.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/tests/test-modal.py b/tests/test-modal.py
+index c710537..f3acb44 100755
+--- a/tests/test-modal.py
++++ b/tests/test-modal.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/tests/test-select.py b/tests/test-select.py
+index 8dd5ae3..fc1cf98 100755
+--- a/tests/test-select.py
++++ b/tests/test-select.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ # Testing coselect
+ 
+diff --git a/tests/testthreads.py b/tests/testthreads.py
+index 97e3218..dd80197 100755
+--- a/tests/testthreads.py
++++ b/tests/testthreads.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 
+diff --git a/tests/timing-test.py b/tests/timing-test.py
+index 5a2f969..94df705 100755
+--- a/tests/timing-test.py
++++ b/tests/timing-test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/python
+ 
+ from __future__ import print_function
+ 

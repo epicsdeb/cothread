@@ -1,0 +1,4 @@
+0001-fix-script-interpreter.patch
+0002-remove-unused-Makefiles.patch
+0003-simpler-debian-specific-load_ca.py.patch
+0004-adjust-setup.py.patch
