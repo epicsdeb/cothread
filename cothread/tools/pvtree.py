@@ -11,6 +11,11 @@ if __name__ == '__main__':
     import os
     sys.path.append(
         os.path.join(os.path.dirname(__file__), '../..'))
+    try:
+        import numpy
+    except ImportError:
+        from pkg_resources import require
+        require('numpy')
 
 from cothread import Timedout
 from cothread.catools import *
@@ -39,6 +44,7 @@ record_types = {
     'acalcout':     calc_rec(),
     'ai':           input_rec,
     'ao':           output_rec,
+    'aSub':         inp_range('U'),
     'asyn':         [],
     'bi':           input_rec,
     'bo':           output_rec,
@@ -79,10 +85,12 @@ record_types = {
 }
 
 
-
 def colour(col, word):
-    esc = 27
-    return '%(esc)c[%(col)dm%(word)s%(esc)c[0m' % locals()
+    if options.raw:
+        return word
+    else:
+        esc = 27
+        return '%(esc)c[%(col)dm%(word)s%(esc)c[0m' % locals()
 
 BLACK   = 30
 RED     = 31
@@ -167,7 +175,7 @@ def follow_link(indent, link):
                     ('VAL', 'SEVR', 'STAT', 'DTYP') + fields),
                 datatype = str, timeout = 2, throw = False, count = 1)
             (val, sevr, stat, dtyp), values = values[:4], values[4:]
-                
+
             print_indent(0, indent, BOLD, record,
                 '(%s, %s)' % (rtyp, dtyp_to_str(dtyp)),
                 val, colour(YELLOW, sevr), colour(YELLOW, stat))
@@ -179,13 +187,17 @@ def follow_link(indent, link):
                         if options.check_ms and 'NMS' in value.split(' '):
                             ms_check = ':', colour(BRIGHT+RED, 'MS missing')
                             priority = 1
-                        print_indent(priority, 
+                        print_indent(priority,
                             indent, BRIGHT+CYAN, value.name, value, *ms_check)
                         follow_link(indent+1, value)
                 else:
                     print_indent(0, indent, CYAN, value.name, value)
 
 
+# Determines whether output supports colour
+def dumb_terminal():
+    term = os.getenv('TERM')
+    return not sys.stdout.isatty() or term is None or term == 'dumb'
 
 def main():
     # Argument parsing
@@ -203,6 +215,14 @@ def main():
         '-q', '--quiet',
         dest = 'quiet', default = False, action = 'store_true',
         help = 'Only show errors, suppress normal output')
+    parser.add_option(
+        '-r', '--raw',
+        dest = 'raw', default = dumb_terminal(), action = 'store_true',
+        help = 'Print raw text without colour codes')
+    parser.add_option(
+        '-c', '--colour',
+        dest = 'raw', action = 'store_false',
+        help = 'Force colour coded output on unsupported destination')
 
     global options
     options, args = parser.parse_args()

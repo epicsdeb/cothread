@@ -12,6 +12,7 @@ try:
         entry_points = {
             'console_scripts': [
                 'pvtree.py = cothread.tools.pvtree:main' ] },
+        install_requires = ['numpy'],
         zip_safe = False)
 
 except ImportError:

@@ -257,7 +257,8 @@ Functions
 
 
 ..  function:: camonitor(pvs, callback, events=None, datatype=None, \
-        format=FORMAT_RAW, count=0, all_updates=False, notify_disconnect=False)
+        format=FORMAT_RAW, count=0, all_updates=False, \
+        notify_disconnect=False, connect_timeout=None)
 
     Creates a subscription to one or more PVs, returning a subscription
     object for each PV.  If a single PV is given then a single subscription
@@ -327,6 +328,13 @@ Functions
         :class:`ca_nothing` error with :attr:`!.ok` :const:`False`.  By default
         these notifications are suppressed so that only valid values will be
         passed to the callback routine.
+
+    `connect_timeout`
+        If a connection timeout is specified then the :func:`camonitor` will
+        report a disconnection event after the specified interval if connection
+        has not completed by this time.  Note that this notification will be
+        made even if notify_disconnect is False, and that if the PV subsequently
+        connects it will update as normal.
 
 
 ..  function:: connect(pvs, cainfo=False, wait=True, timeout=5, throw=True)
@@ -440,6 +448,73 @@ always safe to test ``value.ok`` for a value returned by :func:`caget` or
 ..  attribute:: .name
 
     Name of the pv.
+
+If :attr:`!.ok` is :const:`True` then two further attributes are set (see
+:ref:`Augmented` for further details):
+
+..  attribute:: .datatype
+
+    Underlying EPICS data type.
+
+..  attribute:: .element_count
+
+    Underlying EPICS length.  This is typically determined by record support at
+    database loading type, for instance for :const:`waveform` records this is
+    the value in the :const:`.NELM` field.
+
+    Note that this determines the maximum length of the associated data array,
+    but the returned data may be shorter, for instance the :const:`.NORD` field
+    of a :const:`waveform` record can determine a shorter length.
+
+
+Values and their Types
+~~~~~~~~~~~~~~~~~~~~~~
+
+The type of values returned by :func:`caget` or delivered by :func:`camonitor`
+callbacks is determined by the requested datatype in the original :func:`caget`
+or :func:`camonitor` call together with the underlying length of the requested
+EPICS field.
+
+If the underlying length (:attr:`!.element_count`) of the EPICS value is 1 then
+the value will be returned as a Python scalar, and will be one of the three
+basic scalar types (string, integer or floating point number), but wrapped as an
+augmented type.
+
+If on the other hand :attr:`!.element_count` is not 1 then the value is treated
+as an array and is always returned as a numpy array, again wrapped as an
+augmented type.  Note that this means that even if ``caget(pv, count=1)`` is
+used to fetch a value with one element, if the underlying PV is an array then
+the result returned will be an array.
+
+..  note::
+
+    This is an incompatible change in behaviour from previous versions of
+    cothread.  Previously whether to return a value as an array or a scalar was
+    determined purely by the length of the retrieved data, now it is determined
+    by the underlying length of the EPICS source, ie by its
+    :attr:`!.element_count` value.
+
+The table below enumerates the possibilities:
+
+    ==================  =============== ========================================
+    Cothread type       Derived from    For these values
+    ==================  =============== ========================================
+    :class:`ca_str`     :class:`str`    String value
+    :class:`ca_int`     :class:`int`    Integral value
+    :class:`ca_float`   :class:`float`  Floating point value
+    :class:`ca_array`   :class:`ndarry` Any array value
+    ==================  =============== ========================================
+
+..  class:: ca_str
+..  class:: ca_int
+..  class:: ca_float
+
+    Scalar types derived from basic Python types.
+
+..  class:: ca_array
+
+    Array type derived from :class:`numpy.ndarray`.  The associated
+    :attr:`dtype` will be as close a fit to the underlying data as possible.
 
 
 ..  _Augmented:
@@ -596,8 +671,29 @@ used to control the type of the data returned:
 
 
 `count`
-    If specified this can be used to limit the number of waveform points
-    retrieved from the server, otherwise the entire waveform is always returned.
+    The precise behaviour of this parameter is EPICS server and client version
+    specific, but for recent versions of EPICS there are three options:
+
+    0 (default)
+        For recent versions of EPICS this is interpreted as a request for the
+        true data dependent length of the data, for example, the number of
+        points in a waveform record determined by the ``.NORD`` field).  For
+        older versions of EPICS the full waveform is returned.
+
+        ..  note::
+
+            This feature means that a very visible change in behaviour is seen
+            when upgrading from EPICS 3.14.11 to 3.14.12.  Before this update
+            requests from waveform records ignore ``.NORD``, subsequently it is
+            possible for truncated data to be returned in response to a default
+            request.
+
+    -1 (or any negative value)
+        This will always request the entire waveform, up to
+        :attr:`.element_count` values.
+
+    any other value
+        Returns the specified number of elements, up to :attr:`.element_count`.
 
 
 Fields in Augmented Values
@@ -614,6 +710,30 @@ The following fields are present in all augmented values.
 ..  attribute:: .ok
 
     Set to :const:`True`, always present.
+
+The following fields are present if :attr:`!.ok` is :const:`True`:
+
+..  attribute:: .datatype
+
+    This is the underlying EPICS data type of the value, and is one of the
+    following values:
+
+    ==============  ==  ========================================================
+    DBR_STRING      0   String (up to 40 characters)
+    DBR_SHORT       1   16-bit signed integer
+    DBR_FLOAT       2   32-bit floating point number
+    DBR_ENUM        3   Enumeration, should be value between 0 and 15, but the
+                        underlying data is a 16-bit integer
+    DBR_CHAR        4   8-bit signed integer
+    DBR_LONG        5   32-bit signed integer
+    DBR_DOUBLE      6   64-bit floating point number
+    ==============  ==  ========================================================
+
+..  attribute:: .element_count
+
+    Number of elements in the underlying EPICS value.  If this is not 1 then the
+    value is treated as an array, otherwise up to this many elements may be
+    present in the value.
 
 
 The following fields are present in all values if :const:`FORMAT_TIME` is
@@ -753,3 +873,165 @@ or raised as an exception.
 
             Channel timed out.  Reported if user specified timeout ocurred
             before completion and if ``throw=False`` specified.
+
+
+PV and PV_array Classes
+-----------------------
+
+.. module:: cothread.pv
+
+Two classes are provided for wrapping :func:`camonitor`.  The :class:`PV` class
+wraps access to a single PV and always contains the latest value.  On the other
+hand, :class:`PV_array` gathers a uniform array of PVs into a single array.
+These two classes can be imported from :mod:`cothread.pv`.
+
+Note that both classes will automatically unsubscribe from their PVs when
+deleted.
+
+..  note::
+
+    Note that both of these classes are still somewhat experimental and may
+    change in future releases.
+
+
+..  class:: PV(pv, on_update=None, timeout=5, **kargs)
+
+    Creates a wrapper to monitor *pv*.  If an *on_update* function is passed it
+    will be called with the class instance as argument after each update to the
+    instance.  The *timeout* is used the first time the class is interrogated to
+    check whether a connection has been established.  The *kargs* are passed
+    through to the called :func:`camonitor`.
+
+    ..  method:: close()
+
+        Closes the associated :func:`camonitor`.  No further updates will occur.
+        Note that it is sufficient to drop all references to the class, it will
+        then automatically call :meth:`close`.
+
+    ..  method:: get()
+
+        Returns the current value associated with the PV.  This will be the most
+        recently delivered PV value as notified through a :func:`camonitor`
+        callback.
+
+        On the first call to :meth:`get` if no value has yet been delivered (no
+        callback has yet occurred) this call will block until the timeout passed
+        to the constructor has expired or a value has arrived, and if the
+        timeout expires then an exception is raised.
+
+    ..  method:: get_next(timeout=None, reset=False)
+
+        Returns a fresh value associated with the PV, blocks and waits if
+        necessary.  Values are consumed by calling this method or :meth:`reset`,
+        values are generated by :func:`camonitor` callbacks, so to ensure the
+        value is fresher than the point of call *reset* can be set to discard
+        any pending value.  A *timeout* can be specified to limit how long to
+        wait for a new value, and a timeout exception may be raised.
+
+    ..  method:: reset()
+
+        Discards any pending value for :meth:`get_next`, ensures
+        :meth:`get_next` will block until a fresh value arrives.
+
+    ..  method:: caget(** kargs)
+
+        Directly calls :func:`caget` on the underlying PV with the given
+        arguments.
+
+    ..  method:: caput(value, ** kargs)
+
+        Directly calls :func:`caput` on the underlying PV with the given
+        arguments.
+
+    ..  attribute:: name
+
+        This is the PV name, and should be the same as ``.value.name``.
+
+    ..  attribute:: value
+
+        This attribute is a property wrapping :meth:`get` and :meth:`caput`, so
+        given ``pv = PV(pvname)`` then ``pv.value`` returns the most recent
+        value for ``pv`` and ``pv.value = new_value`` will call ``caput(pvname,
+        new_value)``.
+
+
+..  class:: PV_array(pvs, dtype=float, count=1, on_update=None, **kargs)
+
+    Uses *pvs* to create an aggregate array containing the value of all
+    specified PVs aggregated into a single :mod:`numpy` array.  The type of all
+    the elements is specified by *dtype* and the number of points contributed by
+    each PV is given by *count*.  If *count* is 1 the generated array is one
+    dimensional of shape ``(len(pvs),)``, otherwise the shape is
+    ``(len(pvs),count)``.
+
+    At the same time arrays of length ``len(pvs)`` are created for the
+    connection status, timestamp and severity of each PV.
+
+    If specified the *on_update* method will be called for each update to each
+    field of the managed array.  The arguments passed are the updated
+    :class:`PV_array` instance and the index of the update.
+
+    ..  method:: close()
+
+        Closes all monitors.  Note that this is called automatically when the
+        last reference to the created :class:`PV_array` instance is dropped.
+
+    ..  method:: get()
+
+        Returns copy of current value.  This will be a :mod:`numpy` array with
+        shape and dtype determined by the arguments to the constructor.  This is
+        the same as the value returned by the :attr:`value` attribute.
+
+    ..  method:: caget(** kargs)
+
+        Directly calls :func:`caget` on the list of PVs and returns an array of
+        results; this should be the same shape and parameters as returned by
+        :meth:`get`.
+
+    ..  method:: caput(value, ** args)
+
+        Directly calls :func:`caput` on the stored list of PVs.
+
+    ..  method:: sync(timeout=5, throw=False)
+
+        This method attempts to ensure that all of the PVs associated with this
+        array have received at least one update by blocking.
+
+    ..  attribute:: value
+
+        Returns copy of current value, same as :meth:`get` when read, calls
+        :meth:`caput` when written to.
+
+    ..  attribute:: names
+
+        Stores the names of the monitored PVs.
+
+    ..  attribute:: timestamp
+
+        Timestamp of the most recent update for each monitored PV in standard
+        :func:`time.time` format.
+
+    ..  attribute:: severity
+
+        Array of EPICS severity codes for the most recent update for each PV.
+
+    ..  attribute:: status
+
+        Array of EPICS status codes for the most recent update for each PV.
+
+    ..  attribute:: ok
+
+        Connection status for each monitored PV.  If any element of :attr:`!.ok`
+        is :const:`False` then the PV is disconnected and the corresponding
+        :attr:`!.value`, :attr:`!.timestamp`, :attr:`!.severity` and
+        :attr:`!.status` elements contain old and stale values.
+
+    ..  attribute:: all_ok
+
+        Returns aggregate status of :attr:`!.ok`, :const:`True` iff all PVs
+        currently connected.
+
+    Note that the attributes :attr:`value`, :attr:`ok`, :attr:`timestamp`,
+    :attr:`severity`, and :attr:`status` all return fresh copies of the
+    underlying data.  This means that the values returned are not affected by
+    subsequent updates to the :class:`PV_array` object.

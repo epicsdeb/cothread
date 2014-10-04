@@ -115,11 +115,11 @@ The following are suspension points in the core :mod:`cothread` library:
     their own suspension points.
 
 `event`.\ :meth:`Wait`
-    On a :class:`Spawn`, :class:`Event` or :class:`EventQueue` object the
-    :meth:`Wait` method will suspend the caller when the event object is not yet
-    ready, independently of whether the timeout has already expired.  To
-    determine whether an event object is ready without risking suspension call
-    ``bool()`` on the object.
+    On a :class:`Spawn`, :class:`Pulse`, :class:`Event` or :class:`EventQueue`
+    object the :meth:`Wait` method will suspend the caller when the event object
+    is not yet ready, independently of whether the timeout has already expired.
+    To determine whether an event object is ready without risking suspension
+    call ``bool()`` on the object.
 
     ..  note::
 
@@ -301,9 +301,10 @@ module.
     active tasks have been processed, or the timeout has expired.
 
 
-Communication between cothreads is provided by :class:`Event` and
-:class:`EventQueue` objects.  An :class:`Event` can hold at most one value (or
-signal), while an :class:`EventQueue` can hold a list of unbounded length.
+Communication between cothreads is provided by :class:`Pulse`, :class:`Event`,
+and :class:`EventQueue` objects.  A :class:`Pulse` holds no values, an
+:class:`Event` can hold at most one value (or signal), while an
+:class:`EventQueue` can hold a list of unbounded length.
 
 
 ..  class:: Event(auto_reset=True)
@@ -324,9 +325,9 @@ signal), while an :class:`EventQueue` can hold a list of unbounded length.
         of :const:`None` specifies no timeout) this is signalled by raising the
         exception :exc:`Timedout`.
 
-    If `auto_reset` was specified as :const:`True` then the signal is consumed,
-    and subsequent calls to :meth:`Wait` will block until further :meth:`Signal`
-    calls occur.
+        If `auto_reset` was specified as :const:`True` then the signal is
+        consumed, and subsequent calls to :meth:`Wait` will block until further
+        :meth:`Signal` calls occur.
 
     ..  method:: Signal(value=None)
 
@@ -349,6 +350,31 @@ signal), while an :class:`EventQueue` can hold a list of unbounded length.
 
         Resets the signal and erases its value.  Also erases any exception
         written to the event.
+
+
+..  class:: Pulse()
+
+    Pulse objects have no state and all cothreads waiting on a Pulse object will
+    block until :meth:`Signal()` is called, at which point waiting cothreads
+    will be woken.
+
+    The following methods are available.
+
+    ..  method:: Wait(timeout=None)
+
+        The calling cothread will suspend until :meth:`Signal()` is called or
+        until a timeout occurs, in which case a :exc:`Timedout` exception is
+        returned.
+
+    ..  method:: Signal(wake_all=True)
+
+        Wakes one or all cothreads waiting on the object.  By default all
+        waiting cothreads are woken, but ``Signal(False)`` can be used to
+        wake just one waiting cothread.
+
+    A Pulse object behaves similarly to an :class:`Event` object, but the wakeup
+    is unconditional and a Pulse object has no state.  This object can used as a
+    notifier for updating complex conditions.
 
 
 ..  class:: EventQueue()
@@ -550,21 +576,70 @@ provided:
     alternatively ``socket_hook()`` can be called before importing the
     :mod:`socket` module.
 
+..  function:: socketpair(...)
+
+    This function wraps :func:`socket.socketpair` to return a pair of
+    cooperative stream :class:`socket` instances which are already connected.
+
+..  function:: create_connection(address, ...)
+
+    This function wraps :func:`socket.create_connection` to return a cothread
+    compatible socket.
 
 ..  function:: select_hook()
 
-    This function will replace the :func:`select` and :class:`poll` methods in
-    the :mod:`select` module with the non-blocking cothread compatible functions
-    defined here.  Do not use this if other threads need to use functions from
-    the :mod:`select` module.
+    This function will replace the :func:`select.select` and
+    :class:`select.poll` methods in the :mod:`select` module with the
+    non-blocking cothread compatible functions defined here.  Do not use this if
+    other threads need to use functions from the :mod:`select` module.
 
 
 ..  function:: socket_hook()
 
-    This function will replace :class:`socket.socket` in the :mod:`socket`
-    module with :class:`cothread.socket`.  This will convert most Python socket
-    library functions into cooperative socket functions and allows all of the
-    helper functions in the :class:`socket` module to be used.
+    This function will replace :class:`socket.socket` and
+    :func:`socket.socketpair` in the :mod:`socket` module with
+    :class:`cothread.socket` and :func:`socketpair`.  This will convert most
+    Python socket library functions into cooperative socket functions and allows
+    all of the helper functions in the :class:`socket` module to be used.
 
     Note that this function will affect all threads, so if the application
     contains a non-cothread thread using sockets this function must not be used.
+
+
+Coserver Functions
+~~~~~~~~~~~~~~~~~~
+
+.. module:: cothread.coserver
+
+:mod:`cothread.coserver` provides coorperative versions of the server classes
+from :mod:`SocketServer` and :mod:`BaseHTTPServer` modules.
+
+..  class:: TCPServer(...)
+
+    Wrapped version of :class:`SocketServer.TCPServer`.
+
+..  class:: UDPServer(...)
+
+    Wrapped version of :class:`SocketServer.UDPServer`.
+
+..  class:: HTTPPServer(...)
+
+    Wrapped version of :class:`BaseHTTPServer.HTTPServer`.
+
+..  class:: CoThreadingMixIn()
+
+    A cooperative equivalent to :class:`SocketServer.ThreadingMixIn` which
+    spawns a new cothread to handle each request.
+
+..  class:: CoThreadingTCPServer(...)
+
+..  class:: CoThreadingUDPServer(...)
+
+..  class:: CoThreadingHTTPServer(...)
+
+    Convenience classes which apply :class:`CoThreadingMixIn`.
+
+..  class:: BaseServer(...)
+
+    Wrapped version of :class:`SocketServer.BaseServer` provided for
+    completeness.  User code will typically not use this class directly.
