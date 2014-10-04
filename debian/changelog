@@ -1,3 +1,9 @@
+cothread (2.12-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Sat, 04 Oct 2014 12:41:41 -0400
+
 cothread (2.8-4) unstable; urgency=low
 
   * Forgot to update dependencies
