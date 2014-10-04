@@ -1,0 +1,86 @@
+cothread (2.8-4) unstable; urgency=low
+
+  * Forgot to update dependencies
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 04 Mar 2013 12:15:17 -0500
+
+cothread (2.8-3) unstable; urgency=low
+
+  * more accomidating libca search
+     Looks for libca.so.3.14.11, libca.so.3.14.12, and libca.so.3.14.12.3
+     Additional names can be given from the environment with LIBCA_NAMES.
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 04 Mar 2013 12:01:16 -0500
+
+cothread (2.8-2.1) unstable; urgency=low
+
+  * Use epics 3.14.12
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 05 Dec 2012 16:32:29 -0500
+
+cothread (2.8-2) unstable; urgency=low
+
+  * Python <2.6 no longer supported
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Tue, 18 Sep 2012 09:35:16 -0400
+
+cothread (2.8-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 17 Sep 2012 13:51:14 -0400
+
+cothread (2.2-2) unstable; urgency=low
+
+  * fix incorrect conversion of epics time to posix time
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Tue, 14 Feb 2012 16:46:35 -0500
+
+cothread (2.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 19 Dec 2011 10:18:47 -0500
+
+cothread (2.0-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Thu, 10 Nov 2011 12:16:28 -0500
+
+cothread (1.15-3) unstable; urgency=low
+
+  * update to base 3.14.11
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 18 Aug 2010 10:36:59 -0400
+
+cothread (1.15-2) unstable; urgency=low
+
+  * debian/control - starting with 1.0 the python-codespeak-lib package
+                     no longer contains greenlets.  They are in a seperate
+                     package python-greenlet.
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 29 Mar 2010 17:30:36 -0400
+
+cothread (1.15-1) unstable; urgency=low
+
+  * New upstream
+  * debian/control - merge python-cothread-doc
+  * debian/rules - switched from cdbs to dh
+  * debian/watch - added
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 12 Mar 2010 11:10:31 -0500
+
+cothread (1.14-2) unstable; urgency=low
+
+  * Update dependency
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Sun, 27 Dec 2009 17:49:04 -0500
+
+cothread (1.14-1) unstable; urgency=low
+
+  * Initial release 1.14
+  * Patch from upstream to fix cadef ctypes definitions
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Sat, 24 Oct 2009 06:00:22 -0400
+

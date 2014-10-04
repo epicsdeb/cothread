@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+PYVERS=$(shell pyversions -vr debian/control)
+
+%:
+	dh $@
+binary: binary-arch binary-indep
+binary-arch binary-indep: install
+install: build
+
+override_dh_auto_build:
+	dh_auto_build
+	sphinx-build docs docs/html
+
+override_dh_auto_clean:
+	rm -rf docs/html
+	dh_auto_clean

@@ -1,0 +1,4 @@
+version=3
+
+opts="uversionmangle=s/[_-]/./" \
+http://controls.diamond.ac.uk/downloads/python/cothread/ [0-9-]+/cothread-(.+).tgz
