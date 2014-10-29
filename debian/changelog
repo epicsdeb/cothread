@@ -1,3 +1,10 @@
+cothread3 (2.12-2) unstable; urgency=low
+
+  * Don't install /usr/bin/pvtree.py
+    Avoids conflict with python-cothread
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Wed, 29 Oct 2014 11:48:23 +0000
+
 cothread3 (2.12-1) unstable; urgency=low
 
   * New upstream version
