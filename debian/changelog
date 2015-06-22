@@ -1,3 +1,9 @@
+cothread3 (2.12-4) unstable; urgency=medium
+
+  * Another py3 fix (load_ca.py)
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 22 Jun 2015 11:54:44 -0400
+
 cothread3 (2.12-3) unstable; urgency=medium
 
   * Start python3 packaging
