@@ -4,3 +4,4 @@
 0004-adjust-setup.py.patch
 0005-cothread-2-12-2to3.patch.patch
 0006-don-t-install-pvtree.py.patch
+0007-update-load_ca.py.patch
