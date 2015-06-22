@@ -1,3 +1,10 @@
+cothread3 (2.12-3) unstable; urgency=medium
+
+  * Start python3 packaging
+  * skip 2.12-2 due to builder problem
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Mon, 22 Jun 2015 11:12:37 -0400
+
 cothread (2.12-1) unstable; urgency=low
 
   * New upstream version
