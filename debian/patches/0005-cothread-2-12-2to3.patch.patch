@@ -1,0 +1,1227 @@
+From: Michael Davidsaver <mdavidsaver@bnl.gov>
+Date: Mon, 22 Jun 2015 10:58:27 -0400
+Subject: cothread-2-12-2to3.patch
+
+---
+ context/tests/bigtest.py      |  2 --
+ context/tests/coco.py         |  4 +--
+ context/tests/leak.py         |  4 +--
+ context/tests/pyco.py         |  2 --
+ context/tests/test.py         |  2 --
+ context/tests/timing.py       |  2 --
+ cothread/cadef.py             |  2 +-
+ cothread/catools.py           | 21 +++++---------
+ cothread/coselect.py          |  4 +--
+ cothread/coserver.py          | 27 +++++++++---------
+ cothread/cosocket.py          | 65 +++++++++++++------------------------------
+ cothread/cothread.py          | 21 +++++++-------
+ cothread/dbr.py               | 64 +++++++++++++++++++++---------------------
+ cothread/load_ca.py           |  2 --
+ cothread/tools/pvtree.py      |  4 +--
+ docs/catools.rst              | 10 +++----
+ examples/caget.py             |  4 +--
+ examples/camonitor.py         |  4 +--
+ examples/caput.py             |  4 +--
+ examples/qt_monitor.py        |  2 +-
+ examples/scope_epics.py       |  4 +--
+ examples/simple.py            |  4 +--
+ setup.py                      | 10 ++++---
+ tests/caget_failure.py        |  4 +--
+ tests/caget_structure.py      |  4 +--
+ tests/callback.py             |  4 +--
+ tests/camonitor.big.py        |  4 +--
+ tests/camonitor_test.py       |  4 +--
+ tests/control-c.py            |  4 +--
+ tests/cosocket.py             | 35 +++++++++--------------
+ tests/interactive.py          |  4 +--
+ tests/late_qt.py              |  2 +-
+ tests/leaktest.py             |  4 +--
+ tests/load.py                 |  4 +--
+ tests/plottest.py             |  4 +--
+ tests/recursion-test.py       |  4 +--
+ tests/simple-modal.py         |  4 +--
+ tests/test-modal.py           |  4 +--
+ tests/test-select.py          |  4 +--
+ tests/test-server.py          |  2 --
+ tests/test-socket.py          |  2 --
+ tests/test_ih.py              |  2 --
+ tests/testthreads.py          |  4 +--
+ tests/timing-test.py          |  4 +--
+ tests/timing/test_cothread.py |  4 +--
+ 45 files changed, 137 insertions(+), 242 deletions(-)
+
+diff --git a/context/tests/bigtest.py b/context/tests/bigtest.py
+index a1defca..18c5153 100644
+--- a/context/tests/bigtest.py
++++ b/context/tests/bigtest.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import time
+ import sys, os
+ sys.path.append(
+diff --git a/context/tests/coco.py b/context/tests/coco.py
+index 6661a07..57bdf23 100755
+--- a/context/tests/coco.py
++++ b/context/tests/coco.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import sys, os
+ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+diff --git a/context/tests/leak.py b/context/tests/leak.py
+index b852863..83217bc 100755
+--- a/context/tests/leak.py
++++ b/context/tests/leak.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import sys, os
+ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+diff --git a/context/tests/pyco.py b/context/tests/pyco.py
+index 311dc60..831d5a5 100644
+--- a/context/tests/pyco.py
++++ b/context/tests/pyco.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import sys, os
+ 
+ sys.path.append(
+diff --git a/context/tests/test.py b/context/tests/test.py
+index ce66185..a706d9e 100644
+--- a/context/tests/test.py
++++ b/context/tests/test.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import sys, os
+ sys.path.append(
+     os.path.join(os.path.dirname(__file__), '../..'))
+diff --git a/context/tests/timing.py b/context/tests/timing.py
+index dbe9d93..bfdf7d0 100644
+--- a/context/tests/timing.py
++++ b/context/tests/timing.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import time
+ import sys, os
+ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+diff --git a/cothread/cadef.py b/cothread/cadef.py
+index 106ce84..af20b10 100644
+--- a/cothread/cadef.py
++++ b/cothread/cadef.py
+@@ -138,7 +138,7 @@ class CAException(Exception):
+         self.function = function
+     def __str__(self):
+         return '%s calling %s' % (
+-            ca_message(self.status), self.function.__name__)
++            ca_message(self.status).decode(), self.function.__name__)
+ 
+ 
+ 
+diff --git a/cothread/catools.py b/cothread/catools.py
+index 6ea9586..d4b5921 100644
+--- a/cothread/catools.py
++++ b/cothread/catools.py
+@@ -46,8 +46,6 @@ Supports the following methods:
+ See the documentation for the individual functions for more details on using
+ them.'''
+ 
+-from __future__ import print_function
+-
+ import os
+ import sys
+ import atexit
+@@ -100,16 +98,11 @@ class ca_nothing(Exception):
+         return 'ca_nothing(%r, %d)' % (self.name, self.errorcode)
+ 
+     def __str__(self):
+-        return '%s: %s' % (self.name, cadef.ca_message(self.errorcode))
++        return '%s: %s' % (self.name, cadef.ca_message(self.errorcode).decode())
+ 
+-    def __nonzero__(self):
++    def __bool__(self):
+         return self.ok
+ 
+-    def __iter__(self):
+-        '''This is *not* supposed to be an iterable object, but the base class
+-        appears to have a different opinion.  So enforce this.'''
+-        raise TypeError('iteration over non-sequence')
+-
+ 
+ def maybe_throw(function):
+     '''Function decorator for optionally catching exceptions.  Exceptions
+@@ -145,8 +138,8 @@ def ca_timeout(event, timeout, name):
+     ca_nothing timeout exception containing the PV name.'''
+     try:
+         return event.Wait(timeout)
+-    except cothread.Timedout:
+-        raise ca_nothing(name, cadef.ECA_TIMEOUT)
++    except cothread.Timedout as timeout:
++        raise ca_nothing(name, cadef.ECA_TIMEOUT) from timeout
+ 
+ 
+ # ----------------------------------------------------------------------------
+@@ -195,7 +188,7 @@ class Channel(object):
+ 
+         chid = ctypes.c_void_p()
+         cadef.ca_create_channel(
+-            name, self.on_ca_connect, ctypes.py_object(self),
++            name.encode(), self.on_ca_connect, ctypes.py_object(self),
+             0, ctypes.byref(chid))
+         # Setting this allows a channel object to autoconvert into the chid
+         # when passed to ca_ functions.
+@@ -1045,6 +1038,6 @@ if False:
+     @exception_handler
+     def catools_exception(args):
+         '''print ca exception message'''
+-        print('catools_exception:', args.ctx, cadef.ca_message(args.stat),
+-            file = sys.stderr)
++        print('catools_exception:', args.ctx,
++            cadef.ca_message(args.stat).decode(), file = sys.stderr)
+     cadef.ca_add_exception_event(catools_exception, 0)
+diff --git a/cothread/coselect.py b/cothread/coselect.py
+index b87d804..9fc9646 100644
+--- a/cothread/coselect.py
++++ b/cothread/coselect.py
+@@ -29,8 +29,6 @@
+ '''Support for cooperative select functions.  Replaces the functionality of
+ the standard select module.'''
+ 
+-from __future__ import absolute_import
+-
+ import select as _select
+ import cothread
+ 
+@@ -68,7 +66,7 @@ def select_hook():
+ # A helpful routine to ensure that our select() behaves as much as possible
+ # like the real thing!
+ def _AsFileDescriptor(file):
+-    if isinstance(file, (int, long)):
++    if isinstance(file, int):
+         return file
+     else:
+         return file.fileno()
+diff --git a/cothread/coserver.py b/cothread/coserver.py
+index cca8edc..7e645d7 100644
+--- a/cothread/coserver.py
++++ b/cothread/coserver.py
+@@ -22,11 +22,11 @@ cothread friendly versions of the socket servers
+ from the SocketServer and BaseHTTPServer modules
+ """
+ 
+-import SocketServer, BaseHTTPServer, SimpleHTTPServer
++import socketserver, http.server, http.server
+ 
+-import cothread
+-import cosocket
+-import coselect
++from . import cothread
++from . import cosocket
++from . import coselect
+ 
+ __all__ = [
+     'BaseServer',
+@@ -60,7 +60,9 @@ def _patch(cls):
+             self.__shut = cosocket.socketpair()
+ 
+             if hasattr(cls, 'address_family'):
+-                self.socket = cosocket.socket(None, None, None, self.socket)
++                self.socket = cosocket.socket(
++                    self.socket.family, self.socket.type,
++                    self.socket.proto, self.socket.detach())
+                 if baact:
+                     self.server_bind()
+                     self.server_activate()
+@@ -101,13 +103,13 @@ def _patch(cls):
+     return WrappedServer
+ 
+ 
+-BaseServer = _patch(SocketServer.BaseServer)
+-TCPServer  = _patch(SocketServer.TCPServer)
+-UDPServer  = _patch(SocketServer.UDPServer)
+-HTTPServer = _patch(BaseHTTPServer.HTTPServer)
++BaseServer = _patch(socketserver.BaseServer)
++TCPServer  = _patch(socketserver.TCPServer)
++UDPServer  = _patch(socketserver.UDPServer)
++HTTPServer = _patch(http.server.HTTPServer)
+ 
+ 
+-class CoThreadingMixIn(SocketServer.ThreadingMixIn):
++class CoThreadingMixIn(socketserver.ThreadingMixIn):
+     def process_request(self, request, client_address):
+         cothread.Spawn(self.process_request_thread, request, client_address)
+ 
+@@ -115,10 +117,9 @@ class CoThreadingUDPServer(CoThreadingMixIn, UDPServer): pass
+ class CoThreadingTCPServer(CoThreadingMixIn, TCPServer): pass
+ class CoThreadingHTTPServer(CoThreadingMixIn, HTTPServer): pass
+ 
+-def test(HandlerClass = SimpleHTTPServer.SimpleHTTPRequestHandler,
++def test(HandlerClass = http.server.SimpleHTTPRequestHandler,
+          ServerClass = CoThreadingHTTPServer):
+-    BaseHTTPServer.test(HandlerClass, ServerClass)
+-
++    http.server.test(HandlerClass, ServerClass)
+ 
+ if __name__ == '__main__':
+     test()
+diff --git a/cothread/cosocket.py b/cothread/cosocket.py
+index da3545d..c1a8a12 100644
+--- a/cothread/cosocket.py
++++ b/cothread/cosocket.py
+@@ -52,17 +52,17 @@ def socket_hook():
+     _socket.socketpair = socketpair
+ 
+ def socketpair(*args):
+-    # For unfathomable reasons socketpair() returns un-wrapped '_socket.socket'
+-    # So they are only wrapped once.
+-    return tuple(map(lambda S: socket(_sock = S), _socket_pair(*args)))
+-socketpair.__doc__ = _socket.socketpair.__doc__
++    A, B = _socket_pair(*args)
++    A = socket(A.family, A.type, A.proto, A.detach())
++    B = socket(B.family, B.type, B.proto, B.detach())
++    return A, B
+ 
+ def create_connection(*args, **kargs):
+     sock = _socket.create_connection(*args, **kargs)
+     return socket(_sock = sock)
+ create_connection.__doc__ = _socket.create_connection.__doc__
+ 
+-class socket(object):
++class socket(_socket_socket):
+     __doc__ = _socket_socket.__doc__
+ 
+     def wrap(fun):
+@@ -71,18 +71,11 @@ class socket(object):
+ 
+     def __init__(self,
+             family=_socket.AF_INET, type=_socket.SOCK_STREAM, proto=0,
+-            _sock=None):
+-
+-        if _sock is None:
+-            _sock = _socket_socket(family, type, proto)
+-        self.__socket = _sock
+-        self.__socket.setblocking(0)
++            fileno=None):
++        _socket_socket.__init__(self, family, type, proto, fileno)
++        _socket_socket.setblocking(self, 0)
+         self.__timeout = _socket.getdefaulttimeout()
+ 
+-    def __getattr__(self, name):
+-        # Delegate all attributes we've not defined to the underlying socket.
+-        return getattr(self.__socket, name)
+-
+     @wrap
+     def settimeout(self, timeout):
+         self.__timeout = timeout
+@@ -104,7 +97,7 @@ class socket(object):
+         # with EINPROGRESS, and then need to wait for connection to complete
+         # before discovering the true result.
+         try:
+-            self.__socket.connect(address)
++            _socket_socket.connect(self, address)
+         except _socket.error as error:
+             if error.errno != errno.EINPROGRESS:
+                 raise
+@@ -126,44 +119,44 @@ class socket(object):
+         if not coselect.poll_list([(self, event)], self.__timeout):
+             raise _socket.error(errno.ETIMEDOUT, 'Timeout waiting for socket')
+ 
+-    def __retry(self, poll, action, args):
++    def __retry(self, event, action, args):
+         while True:
+             try:
+-                return action(*args)
++                return action(self, *args)
+             except _socket.error as error:
+                 if error.errno != errno.EAGAIN:
+                     raise
+-            self.__poll(poll)
++            self.__poll(event)
+ 
+ 
+     @wrap
+     def accept(self):
+-        sock, addr = self.__retry(coselect.POLLIN, self.__socket.accept, ())
+-        return (socket(_sock = sock), addr)
++        sock, addr = self.__retry(coselect.POLLIN, _socket_socket.accept, ())
++        return (socket(sock.family, sock.type, sock.proto, sock.detach()), addr)
+ 
+     @wrap
+     def recv(self, *args):
+-        return self.__retry(coselect.POLLIN, self.__socket.recv, args)
++        return self.__retry(coselect.POLLIN, _socket_socket.recv, args)
+ 
+     @wrap
+     def recvfrom(self, *args):
+-        return self.__retry(coselect.POLLIN, self.__socket.recvfrom, args)
++        return self.__retry(coselect.POLLIN, _socket_socket.recvfrom, args)
+ 
+     @wrap
+     def recvfrom_into(self, *args):
+-        return self.__retry(coselect.POLLIN, self.__socket.recvfrom_into, args)
++        return self.__retry(coselect.POLLIN, _socket_socket.recvfrom_into, args)
+ 
+     @wrap
+     def recv_into(self, *args):
+-        return self.__retry(coselect.POLLIN, self.__socket.recv_into, args)
++        return self.__retry(coselect.POLLIN, _socket_socket.recv_into, args)
+ 
+     @wrap
+     def send(self, *args):
+-        return self.__retry(coselect.POLLOUT, self.__socket.send, args)
++        return self.__retry(coselect.POLLOUT, _socket_socket.send, args)
+ 
+     @wrap
+     def sendto(self, *args):
+-        return self.__retry(coselect.POLLOUT, self.__socket.sendto, args)
++        return self.__retry(coselect.POLLOUT, _socket_socket.sendto, args)
+ 
+     @wrap
+     def sendall(self, data, *flags):
+@@ -172,22 +165,4 @@ class socket(object):
+         while sent < length:
+             sent += self.send(data[sent:], *flags)
+ 
+-    @wrap
+-    def dup(self):
+-        return socket(None, None, None, self.__socket.dup())
+-
+-    @wrap
+-    def makefile(self, *args, **kws):
+-        # At this point the actual socket '_socket.socket' is wrapped by either
+-        # two layers: 'socket.socket' and this class.  or a single layer: this
+-        # class.  In order to handle close() properly we must copy all wrappers,
+-        # but not the underlying actual socket.
+-        sock = getattr(self.__socket, '_sock', None)
+-        if sock: # double wrapped
+-            copy0 = _socket_socket(None, None, None, sock)
+-            copy1 = socket(None, None, None, copy0)
+-        else: # single wrapped
+-            copy1 = socket(None, None, None, self.__socket)
+-        return _socket._fileobject(copy1, *args, **kws)
+-
+     del wrap
+diff --git a/cothread/cothread.py b/cothread/cothread.py
+index 1e7fd9e..9e2fc4c 100644
+--- a/cothread/cothread.py
++++ b/cothread/cothread.py
+@@ -66,15 +66,13 @@ Similarly the EventQueue can be used for communication.
+ # It might be worth taking a close look at:
+ #   http://wiki.secondlife.com/wiki/Eventlet
+ 
+-from __future__ import print_function
+-
+ import sys
+ import os
+ import time
+ import bisect
+ import traceback
+ import collections
+-import thread
++import _thread
+ 
+ from . import _coroutine
+ 
+@@ -683,7 +681,7 @@ class Spawn(EventBase):
+         # See wait_until() for an explanation of this return value.
+         return []
+ 
+-    def __nonzero__(self):
++    def __bool__(self):
+         '''Tests whether the event is signalled.'''
+         return bool(self.__result)
+ 
+@@ -700,7 +698,7 @@ class Spawn(EventBase):
+             try:
+                 # Re-raise the exception that actually killed the task here
+                 # where it can be received by whoever waits on the task.
+-                raise result[0], result[1], result[2]
++                raise result[1].with_traceback(result[2])
+             finally:
+                 # In this case result and self.__result contain a traceback.  To
+                 # avoid circular references which will delay garbage collection,
+@@ -741,7 +739,7 @@ class Event(EventBase):
+         self.__value = ()
+         self.__auto_reset = auto_reset
+ 
+-    def __nonzero__(self):
++    def __bool__(self):
+         '''Tests whether the event is signalled.'''
+         return bool(self.__value)
+ 
+@@ -870,6 +868,7 @@ class EventQueue(EventBase):
+ 
+     def next(self):
+         return self.Wait()
++    __next__ = next
+ 
+ 
+ class ThreadedEventQueue(object):
+@@ -895,7 +894,7 @@ class ThreadedEventQueue(object):
+         '''Waits for a value to be written to the queue.  This can safely be
+         called from either a cothread or another thread: the appropriate form
+         of cooperative or normal blocking will be selected automatically.'''
+-        if thread.get_ident() == _scheduler_thread_id:
++        if _thread.get_ident() == _scheduler_thread_id:
+             # Normal cothread case, use cooperative wait
+             poll = coselect.poll_list
+         else:
+@@ -911,7 +910,7 @@ class ThreadedEventQueue(object):
+         '''Posts a value to the event queue.  This can safely be called from
+         a thread or a cothread.'''
+         self.__values.append(value)
+-        os.write(self.__signal, '-')
++        os.write(self.__signal, b'-')
+ 
+ 
+ 
+@@ -958,7 +957,7 @@ class _Callback:
+         self.values.append((action, args))
+         if self.waiting:
+             self.waiting = False
+-            os.write(self.signal, '-')
++            os.write(self.signal, b'-')
+ 
+ 
+ class Timer(object):
+@@ -1090,12 +1089,12 @@ def WaitForQuit(catch_interrupt = True):
+ _scheduler = _Scheduler.create()
+ # We hang onto the thread ID for the cothread thread (at present there can
+ # only be one) so that we can recognise when we're in another thread.
+-_scheduler_thread_id = thread.get_ident()
++_scheduler_thread_id = _thread.get_ident()
+ 
+ 
+ # Thread validation: ensure cothreads aren't used across threads!
+ def _validate_thread():
+-    assert _scheduler_thread_id == thread.get_ident(), \
++    assert _scheduler_thread_id == _thread.get_ident(), \
+         'Cannot use cothread with multiple threads.  Consider using ' \
+         'Callback or ThreadedEventQueue if necessary.'
+ 
+diff --git a/cothread/dbr.py b/cothread/dbr.py
+index 1c152dc..2e0ea0b 100644
+--- a/cothread/dbr.py
++++ b/cothread/dbr.py
+@@ -50,8 +50,8 @@ __all__ = [
+     'DBR_DOUBLE',       # 64 bit float
+ 
+     'DBR_CHAR_STR',     # Long strings as char arrays
+-    'DBR_CHAR_UNICODE', # Long unicode strings as char arrays
+     'DBR_ENUM_STR',     # Enums as strings, default otherwise
++    'DBR_CHAR_BYTES',   # Long byte strings as char arrays
+ 
+     'DBR_PUT_ACKT',     # Configure global alarm acknowledgement
+     'DBR_PUT_ACKS',     # Acknowledge global alarm
+@@ -161,11 +161,11 @@ class ca_str(str):
+     def __pos__(self):
+         return str(self)
+ 
+-class ca_unicode(unicode):
++class ca_bytes(bytes):
+     __doc__ = ca_doc_string
+     datetime = timestamp_to_datetime
+     def __pos__(self):
+-        return unicode(self)
++        return bytes(self)
+ 
+ class ca_int(int):
+     __doc__ = ca_doc_string
+@@ -220,7 +220,7 @@ def copy_attributes_ctrl(self, other):
+     other.status = self.status
+     other.severity = self.severity
+ 
+-    other.units = ctypes.string_at(self.units)
++    other.units = ctypes.string_at(self.units).decode()
+     other.upper_disp_limit = self.upper_disp_limit
+     other.lower_disp_limit = self.lower_disp_limit
+     other.upper_alarm_limit = self.upper_alarm_limit
+@@ -409,7 +409,8 @@ class dbr_ctrl_enum(ctypes.Structure):
+     def copy_attributes(self, other):
+         other.status = self.status
+         other.severity = self.severity
+-        other.enums = map(ctypes.string_at, self.raw_strs[:self.no_str])
++        other.enums = [
++            ctypes.string_at(s).decode() for s in self.raw_strs[:self.no_str]]
+ 
+ class dbr_ctrl_char(ctypes.Structure):
+     dtype = numpy.uint8
+@@ -516,7 +517,7 @@ DBR_CLASS_NAME = 38
+ 
+ # Special value for DBR_CHAR as str special processing.
+ DBR_ENUM_STR = 996
+-DBR_CHAR_UNICODE = 998
++DBR_CHAR_BYTES = 997
+ DBR_CHAR_STR = 999
+ 
+ 
+@@ -566,7 +567,7 @@ NumpyCharCodeToDbr = {
+     'i':    DBR_LONG,       # intc   = int32
+     'f':    DBR_FLOAT,      # single = float32
+     'd':    DBR_DOUBLE,     # float_ = float64
+-    'S':    DBR_STRING,     # str_
++    'S':    DBR_STRING,     # bytes_
+ 
+     # The following type codes are weakly supported by pretending that
+     # they're related types.
+@@ -606,9 +607,10 @@ def _datatype_to_dbr(datatype):
+         # Rely on numpy for generic datatype recognition and conversion together
+         # with filtering through our array of acceptable types.
+         return NumpyCharCodeToDbr[numpy.dtype(datatype).char]
+-    except:
++    except Exception as error:
+         raise InvalidDatatype(
+-            'Datatype "%s" not supported for channel access' % datatype)
++            'Datatype "%s" not supported for channel access' % datatype) \
++            from error
+ 
+ def _type_to_dbrcode(datatype, format):
+     '''Converts a datatype and format request to a dbr value, or raises an
+@@ -623,7 +625,7 @@ def _type_to_dbrcode(datatype, format):
+       - FORMAT_CTRL: retrieve limit and control data
+     '''
+     if datatype not in BasicDbrTypes:
+-        if datatype in [DBR_CHAR_STR, DBR_CHAR_UNICODE]:
++        if datatype in [DBR_CHAR_STR, DBR_CHAR_BYTES]:
+             datatype = DBR_CHAR     # Retrieve this type using char array
+         elif datatype in [DBR_STSACK_STRING, DBR_CLASS_NAME]:
+             return datatype         # format is meaningless in this case
+@@ -649,7 +651,7 @@ def _type_to_dbrcode(datatype, format):
+         raise InvalidDatatype('Format not recognised')
+ 
+ 
+-# Helper functions for string arrays used in _convert_str_{str,unicode} below.
++# Helper functions for string arrays used in _convert_str_{str,bytes} below.
+ def _make_strings(raw_dbr, count):
+     p_raw_value = ctypes.pointer(raw_dbr.raw_value[0])
+     return [ctypes.string_at(p_raw_value[n]) for n in range(count)]
+@@ -678,25 +680,25 @@ def _string_at(raw_value, count):
+ 
+ # Conversion from char array to strings
+ def _convert_char_str(raw_dbr, count):
+-    return ca_str(_string_at(raw_dbr.raw_value, count))
++    return ca_str(_string_at(raw_dbr.raw_value, count).decode())
+ 
+-# Conversion from char array to unicode strings
+-def _convert_char_unicode(raw_dbr, count):
+-    return ca_unicode(_string_at(raw_dbr.raw_value, count).decode('UTF-8'))
++# Conversion from char array to bytes strings
++def _convert_char_bytes(raw_dbr, count):
++    return ca_bytes(_string_at(raw_dbr.raw_value, count))
+ 
+ # Arrays of standard strings.
+ def _convert_str_str(raw_dbr, count):
+-    return ca_str(_make_strings(raw_dbr, count)[0])
++    return ca_str(_make_strings(raw_dbr, count)[0].decode())
+ def _convert_str_str_array(raw_dbr, count):
+-    return _string_array(_make_strings(raw_dbr, count), count, 'S')
+-
+-# Arrays of unicode strings.
+-def _convert_str_unicode(raw_dbr, count):
+-    return ca_unicode(_make_strings(raw_dbr, count)[0].decode('UTF-8'))
+-def _convert_str_unicode_array(raw_dbr, count):
+-    strings = [s.decode('UTF-8') for s in _make_strings(raw_dbr, count)]
++    strings = [s.decode() for s in _make_strings(raw_dbr, count)]
+     return _string_array(strings, count, 'U')
+ 
++# Arrays of bytes strings.
++def _convert_str_bytes(raw_dbr, count):
++    return ca_bytes(_make_strings(raw_dbr, count)[0])
++def _convert_str_bytes_array(raw_dbr, count):
++    return _string_array(_make_strings(raw_dbr, count), count, 'S')
++
+ # For everything that isn't a string we either return a scalar or a ca_array
+ def _convert_other(raw_dbr, count):
+     # Single elements are always returned as scalars.
+@@ -745,14 +747,14 @@ def type_to_dbr(channel, datatype, format):
+     if dtype is numpy.uint8 and datatype == DBR_CHAR_STR:
+         # Conversion from char array to strings
+         convert = _convert_char_str
+-    elif dtype is numpy.uint8 and datatype == DBR_CHAR_UNICODE:
+-        # Conversion from char array to unicode strings
+-        convert = _convert_char_unicode
++    elif dtype is numpy.uint8 and datatype == DBR_CHAR_BYTES:
++        # Conversion from char array to bytes strings
++        convert = _convert_char_bytes
+     else:
+         if dtype is str_dtype:
+             # String arrays, either unicode or normal.
+-            if isinstance(datatype, type) and issubclass(datatype, unicode):
+-                convert = (_convert_str_unicode, _convert_str_unicode_array)
++            if isinstance(datatype, type) and issubclass(datatype, bytes):
++                convert = (_convert_str_bytes, _convert_str_bytes_array)
+             else:
+                 convert = (_convert_str_str, _convert_str_str_array)
+         else:
+@@ -820,7 +822,7 @@ def value_to_dbr(channel, datatype, value):
+ 
+     # If no datatype specified then use the target datatype.
+     if datatype is None:
+-        if isinstance(value, (str, unicode)):
++        if isinstance(value, (str, bytes)):
+             # Give strings with no datatype special treatment, let the IOC do
+             # the decoding.  It's safer this way.
+             datatype = DBR_STRING
+@@ -837,7 +839,7 @@ def value_to_dbr(channel, datatype, value):
+             result = _require_value(value, 'S%d' % count)
+         except UnicodeEncodeError:
+             # Unicode needs to be encoded
+-            result = _require_value(value.encode('UTF-8'), 'S%d' % count)
++            result = _require_value(value.encode(), 'S%d' % count)
+         assert result.shape[0] == 1, \
+             'Can\'t put array of strings as char array'
+         return DBR_CHAR, count, result.ctypes.data, result
+@@ -857,7 +859,7 @@ def value_to_dbr(channel, datatype, value):
+                 value = _require_value(value, None)
+                 result = numpy.empty(value.shape, str_dtype)
+                 for n, s in enumerate(value):
+-                    result[n] = s.encode('UTF-8')
++                    result[n] = s.encode()
+         else:
+             # Numpy can do all the conversion for all the remaining data types.
+             result = _require_value(value, dtype)
+diff --git a/cothread/load_ca.py b/cothread/load_ca.py
+index 5bdc5af..93ea204 100644
+--- a/cothread/load_ca.py
++++ b/cothread/load_ca.py
+@@ -36,8 +36,6 @@
+ # Problems with library detection should therefore be
+ # reported to mdavidsaver@bnl.gov
+ 
+-from __future__ import print_function
+-
+ import ctypes
+ import platform
+ import os
+diff --git a/cothread/tools/pvtree.py b/cothread/tools/pvtree.py
+index 209aba8..4b18c24 100755
+--- a/cothread/tools/pvtree.py
++++ b/cothread/tools/pvtree.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ # Simple tool for viewing the chain of PV dependencies.
+ 
+-from __future__ import print_function
+-
+ import sys
+ import re
+ 
+diff --git a/docs/catools.rst b/docs/catools.rst
+index 056153c..e03a4ff 100644
+--- a/docs/catools.rst
++++ b/docs/catools.rst
+@@ -588,11 +588,11 @@ used to control the type of the data returned:
+     4.  Any :class:`numpy.dtype` compatible with any of the above values.
+ 
+     5.  One of the special values :const:`DBR_CHAR_STR` or
+-        :const:`DBR_CHAR_UNICODE`.  This is used to request a char array which
+-        is then converted to a Python string or Unicode string on receipt.  It
+-        is not sensible to specify `count` with this option.  The option
+-        :const:`DBR_CHAR_UNICODE` is meaningless and not supported
+-        for :func:`caput`.
++        :const:`DBR_CHAR_BYTES`.  This is used to request a char array which is
++        then converted to a Python string or :class:`bytes` string on receipt.
++        It is not sensible to specify `count` with this option.  The option
++        :const:`DBR_CHAR_BYTES` is meaningless and not supported for
++        :func:`caput`.
+ 
+         Note that if the PV name ends in ``$`` and `datatype` is not specified
+         then :const:`DBR_CHAR_STR` will be used.
+diff --git a/examples/caget.py b/examples/caget.py
+index eb6a5bf..3fbc564 100755
+--- a/examples/caget.py
++++ b/examples/caget.py
+@@ -1,8 +1,6 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/env python3
+ # Simple example of caget tool using cothread.
+ 
+-from __future__ import print_function
+-
+ import sys
+ import optparse
+ 
+diff --git a/examples/camonitor.py b/examples/camonitor.py
+index 65fff10..42a87da 100755
+--- a/examples/camonitor.py
++++ b/examples/camonitor.py
+@@ -1,8 +1,6 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ # Simple example of camonitor tool catools library
+ 
+-from __future__ import print_function
+-
+ import sys
+ import optparse
+ 
+diff --git a/examples/caput.py b/examples/caput.py
+index f4a0849..c5c01e2 100755
+--- a/examples/caput.py
++++ b/examples/caput.py
+@@ -1,8 +1,6 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ # Simple example of caget tool using cothread.
+ 
+-from __future__ import print_function
+-
+ import require
+ from cothread.catools import *
+ 
+diff --git a/examples/qt_monitor.py b/examples/qt_monitor.py
+index eafc357..7ed9a45 100755
+--- a/examples/qt_monitor.py
++++ b/examples/qt_monitor.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''minimal Qt example'''
+ 
+diff --git a/examples/scope_epics.py b/examples/scope_epics.py
+index df62760..5b43ab0 100755
+--- a/examples/scope_epics.py
++++ b/examples/scope_epics.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''Form Example with Monitor'''
+ 
+-from __future__ import print_function
+-
+ import os, sys
+ 
+ import require
+diff --git a/examples/simple.py b/examples/simple.py
+index 6902758..d6cfd49 100755
+--- a/examples/simple.py
++++ b/examples/simple.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''Channel Access Example'''
+ 
+-from __future__ import print_function
+-
+ # load correct version of catools
+ import require
+ from cothread.catools import *
+diff --git a/setup.py b/setup.py
+index a4e3b10..962501d 100755
+--- a/setup.py
++++ b/setup.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ import glob
+ import os
+@@ -20,18 +20,20 @@ except ImportError:
+     setup_args = {}
+ 
+ 
++# these lines allow the version to be specified in Makefile.RELEASE
++version = os.environ.get('MODULEVER', 'unknown')
++
+ # Extension module providing core coroutine functionality.  Very similar in
+ # spirit to greenlet.
+ extra_compile_args = [
++    '-Werror',
+     '-Wall',
+     '-Wextra',
+     '-Wno-unused-parameter',
+     '-Wno-missing-field-initializers',
+     '-Wundef',
+-    '-Wshadow',
+     '-Wcast-align',
+     '-Wwrite-strings',
+-    '-Wredundant-decls',
+     '-Wmissing-prototypes',
+     '-Wmissing-declarations',
+     '-Wstrict-prototypes']
+@@ -49,7 +51,7 @@ if platform.system() == 'Windows':
+ 
+ setup(
+     name = 'cothread',
+-    version = '2.12',
++    version = version,
+     description = 'Cooperative threading based utilities',
+     author = 'Michael Abbott',
+     author_email = 'Michael.Abbott@diamond.ac.uk',
+diff --git a/tests/caget_failure.py b/tests/caget_failure.py
+index 08bea8f..bb0d373 100755
+--- a/tests/caget_failure.py
++++ b/tests/caget_failure.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''Channel Access Get Structure'''
+ 
+-from __future__ import print_function
+-
+ import require
+ from cothread.catools import *
+ from cothread.catools import ca_nothing
+diff --git a/tests/caget_structure.py b/tests/caget_structure.py
+index fb6ca1b..bc39c7f 100755
+--- a/tests/caget_structure.py
++++ b/tests/caget_structure.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''Channel Access Get Structure'''
+ 
+-from __future__ import print_function
+-
+ import require
+ from cothread.catools import *
+ 
+diff --git a/tests/callback.py b/tests/callback.py
+index aa2e303..5dda2ed 100755
+--- a/tests/callback.py
++++ b/tests/callback.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/env dls-python2.6
++#!/usr/bin/env python3
+ 
+ # Test Callback mechanism
+ 
+-from __future__ import print_function
+-
+ import require
+ import cothread
+ import time
+diff --git a/tests/camonitor.big.py b/tests/camonitor.big.py
+index 1f90d6b..c5ff6fa 100755
+--- a/tests/camonitor.big.py
++++ b/tests/camonitor.big.py
+@@ -1,8 +1,6 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ # Simple example of camonitor tool using greenlets etcetera.
+ 
+-from __future__ import print_function
+-
+ import sys
+ 
+ import require
+diff --git a/tests/camonitor_test.py b/tests/camonitor_test.py
+index 56d11c0..90c97b1 100755
+--- a/tests/camonitor_test.py
++++ b/tests/camonitor_test.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''camonitor minimal example'''
+ 
+-from __future__ import print_function
+-
+ import require
+ from cothread.catools import *
+ from cothread import WaitForQuit
+diff --git a/tests/control-c.py b/tests/control-c.py
+index d08f3fd..af10a01 100755
+--- a/tests/control-c.py
++++ b/tests/control-c.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/env python2.6
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import require
+ import cothread
+diff --git a/tests/cosocket.py b/tests/cosocket.py
+index 9e9fe8f..2f273ab 100644
+--- a/tests/cosocket.py
++++ b/tests/cosocket.py
+@@ -1,6 +1,5 @@
+ #!/usr/bin/env python
+ 
+-from __future__ import print_function
+ 
+ import cothread
+ from cothread import cosocket, coserver
+@@ -10,9 +9,9 @@ import unittest
+ 
+ import os
+ import socket
+-import BaseHTTPServer as http
+-from httplib import HTTPConnection
+-from urllib2 import urlopen
++import http.server as http
++from http.client import HTTPConnection
++from urllib.request import urlopen
+ 
+ os.environ.pop('http_proxy', None)
+ os.environ.pop('HTTP_PROXY', None)
+@@ -81,7 +80,7 @@ class TestSocket(unittest.TestCase):
+ 
+         def tx():
+             for i in  range(10):
+-                A.send(chr(i))
++                A.send(chr(i).encode('ascii'))
+             A.close()
+         tx = cothread.Spawn(tx, raise_on_wait=True)
+ 
+@@ -135,24 +134,24 @@ class TestSocket(unittest.TestCase):
+ 
+     def test_pair_makefile(self):
+         """Test makefile() with socketpair()
+-        which behave differently than a plain socket() in python 2.X
++        which behaves the same as plain socket() in python 3.X
+ 
+-        These must behave like a socket._fileobject wrapping a raw
+-        _socket.socket.  Closing a _socket.socket is immediate, and necessary
+-        to terminate readlines()
++        Underlying socket is a reference count.  So the socket in actually
++        closed when the last reference is released.
+         """
+ 
+         sA, sB = socket.socketpair()
+ 
+         A, B = sA.makefile('w'), sB.makefile('r')
+-        self.assertNotEqual(A._sock.fileno(), -1)
+-        self.assertNotEqual(B._sock.fileno(), -1)
++        sA.close()
++        sB.close()
++        self.assertNotEqual(A.name, -1)
++        self.assertNotEqual(B.name, -1)
+ 
+         def tx2():
+             for i in range(10):
+                 print(i, file=A)
+-            A.close() # flush...
+-            sA.close() # Actually close the socket, completes readlines()
++            A.close() # flush and close
+ 
+         tx2 = cothread.Spawn(tx2, raise_on_wait=True)
+ 
+@@ -161,20 +160,12 @@ class TestSocket(unittest.TestCase):
+ 
+         tx2.Wait(1.0)
+ 
+-        sB.close()
+-
+         self.assertEqual(Ls, ['0\n','1\n','2\n','3\n','4\n','5\n','6\n','7\n',
+                               '8\n','9\n'])
+ 
+     def test_server_makefile(self):
+         """Test makefile() with socket()
+-        which behave differently than socketpair() in python 2.X
+-
+-        These must behave like a socket._fileobject wrapping a
+-        socket.socket.  Closing a socket.socket decrements a ref counter
+-        which does not close the socket as a ref is held by the _fileobject.
+-        So here (as with many library modules) we depend on the GC to close
+-        the socket when the _fileobject is collected.
++        which behaves the same as plain socketpair() in python 3.X
+         """
+         A = socket.socket()
+         A.bind(('localhost',0))
+diff --git a/tests/interactive.py b/tests/interactive.py
+index 13a3bea..764bd59 100755
+--- a/tests/interactive.py
++++ b/tests/interactive.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import os
+ 
+diff --git a/tests/late_qt.py b/tests/late_qt.py
+index 14fc0fe..317c812 100755
+--- a/tests/late_qt.py
++++ b/tests/late_qt.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/env python3
+ 
+ # Designed to test late loading of Qt input hook.
+ 
+diff --git a/tests/leaktest.py b/tests/leaktest.py
+index ae88303..1ab1084 100755
+--- a/tests/leaktest.py
++++ b/tests/leaktest.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ '''Tests for memory leaks.'''
+ 
+-from __future__ import print_function
+-
+ import sys
+ sys.path.append('/scratch/local/python-debug')
+ 
+diff --git a/tests/load.py b/tests/load.py
+index 7b53cb4..7f24b57 100755
+--- a/tests/load.py
++++ b/tests/load.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import require
+ 
+diff --git a/tests/plottest.py b/tests/plottest.py
+index a9e8797..4a17643 100755
+--- a/tests/plottest.py
++++ b/tests/plottest.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import sys
+ 
+diff --git a/tests/recursion-test.py b/tests/recursion-test.py
+index 4d77584..f37c426 100755
+--- a/tests/recursion-test.py
++++ b/tests/recursion-test.py
+@@ -1,10 +1,8 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/env python3
+ 
+ # Simple recursion overflow test, checks that guard pages do indeed guard
+ # against stack overflow (by generating a segmentation fault).
+ 
+-from __future__ import print_function
+-
+ import os
+ os.environ['COTHREAD_CHECK_STACK'] = 'yes'
+ 
+diff --git a/tests/simple-modal.py b/tests/simple-modal.py
+index 52e5eba..0ffd38e 100755
+--- a/tests/simple-modal.py
++++ b/tests/simple-modal.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.6
++#!/usr/bin/env python3
+ 
+ # Simple demonstration that timers and modal windows interact badly: if a modal
+ # window is created from within a timer then the timer is killed and the exec()
+@@ -7,8 +7,6 @@
+ # This means that the current iqt() implementation is incompatible with Qt modal
+ # windows.
+ 
+-from __future__ import print_function
+-
+ import sys
+ from PyQt4.QtCore import QTimer
+ from PyQt4.QtGui import QApplication, QMessageBox
+diff --git a/tests/test-modal.py b/tests/test-modal.py
+index f3acb44..d3c6ef1 100755
+--- a/tests/test-modal.py
++++ b/tests/test-modal.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import require
+ import cothread
+diff --git a/tests/test-select.py b/tests/test-select.py
+index fc1cf98..a67a1a6 100755
+--- a/tests/test-select.py
++++ b/tests/test-select.py
+@@ -1,9 +1,7 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ # Testing coselect
+ 
+-from __future__ import print_function
+-
+ import require
+ from cothread import *
+ import threading
+diff --git a/tests/test-server.py b/tests/test-server.py
+index 538b3de..e221557 100644
+--- a/tests/test-server.py
++++ b/tests/test-server.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import socket
+ 
+ import require
+diff --git a/tests/test-socket.py b/tests/test-socket.py
+index 7071005..23e2d1a 100644
+--- a/tests/test-socket.py
++++ b/tests/test-socket.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import require
+ import cothread
+ import socket
+diff --git a/tests/test_ih.py b/tests/test_ih.py
+index da6ef98..ee2761c 100644
+--- a/tests/test_ih.py
++++ b/tests/test_ih.py
+@@ -1,5 +1,3 @@
+-from __future__ import print_function
+-
+ import input_hook
+ 
+ from cothread import *
+diff --git a/tests/testthreads.py b/tests/testthreads.py
+index dd80197..50823e9 100755
+--- a/tests/testthreads.py
++++ b/tests/testthreads.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import require
+ from cothread.cothread import *
+diff --git a/tests/timing-test.py b/tests/timing-test.py
+index 94df705..15ecac7 100755
+--- a/tests/timing-test.py
++++ b/tests/timing-test.py
+@@ -1,6 +1,4 @@
+-#!/usr/bin/python
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import greenlet
+ import time
+diff --git a/tests/timing/test_cothread.py b/tests/timing/test_cothread.py
+index 8ac93d0..b77c07e 100755
+--- a/tests/timing/test_cothread.py
++++ b/tests/timing/test_cothread.py
+@@ -1,6 +1,4 @@
+-#!/bin/env dls-python2.6
+-
+-from __future__ import print_function
++#!/usr/bin/env python3
+ 
+ import time
+ import sys
