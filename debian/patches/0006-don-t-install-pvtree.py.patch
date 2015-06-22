@@ -1,0 +1,23 @@
+From: Michael Davidsaver <mdavidsaver@bnl.gov>
+Date: Mon, 22 Jun 2015 11:10:55 -0400
+Subject: don't install pvtree.py
+
+conflicts with py2 version
+---
+ setup.py | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 962501d..a0377d9 100755
+--- a/setup.py
++++ b/setup.py
+@@ -9,9 +9,6 @@ try:
+     from setuptools import setup, Extension
+ 
+     setup_args = dict(
+-        entry_points = {
+-            'console_scripts': [
+-                'pvtree.py = cothread.tools.pvtree:main' ] },
+         install_requires = ['numpy'],
+         zip_safe = False)
+ 
