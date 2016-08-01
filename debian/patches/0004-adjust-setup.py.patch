@@ -4,15 +4,26 @@ Subject: adjust setup.py
 
 hardcode version
 remove -Werror
+don't install pvtree to /usr/bin
 ---
- setup.py | 6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+ setup.py | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
 diff --git a/setup.py b/setup.py
-index ec13e77..a4e3b10 100755
+index ec13e77..f2781df 100755
 --- a/setup.py
 +++ b/setup.py
-@@ -20,13 +20,9 @@ except ImportError:
+@@ -9,9 +9,6 @@ try:
+     from setuptools import setup, Extension
+ 
+     setup_args = dict(
+-        entry_points = {
+-            'console_scripts': [
+-                'pvtree.py = cothread.tools.pvtree:main' ] },
+         install_requires = ['numpy'],
+         zip_safe = False)
+ 
+@@ -20,13 +17,9 @@ except ImportError:
      setup_args = {}
  
  
@@ -26,7 +37,7 @@ index ec13e77..a4e3b10 100755
      '-Wall',
      '-Wextra',
      '-Wno-unused-parameter',
-@@ -53,7 +49,7 @@ if platform.system() == 'Windows':
+@@ -53,7 +46,7 @@ if platform.system() == 'Windows':
  
  setup(
      name = 'cothread',
