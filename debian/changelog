@@ -1,3 +1,9 @@
+cothread (2.12-4) unstable; urgency=low
+
+  * Added libepics dependency option for base 3.15
+
+ -- Anton Derbenev <aderbenev@bnl.gov>  Tue, 26 Sep 2017 16:31:01 -0400
+
 cothread (2.12-3) unstable; urgency=medium
 
   * Increment for debian 8
