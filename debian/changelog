@@ -1,3 +1,9 @@
+cothread (2.12-5) UNRELEASED; urgency=medium
+
+  * Added libepics dependency option for base 3.15.3 and 3.16.1
+
+ -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 27 Oct 2017 17:38:29 -0500
+
 cothread (2.12-4) unstable; urgency=low
 
   * Added libepics dependency option for base 3.15
