@@ -4,8 +4,8 @@ Subject: simpler debian specific load_ca.py
 
 ---
  cothread/cadef.py   |   3 +-
- cothread/load_ca.py | 107 +++++++++++++++-------------------------------------
- 2 files changed, 32 insertions(+), 78 deletions(-)
+ cothread/load_ca.py | 109 ++++++++++++++++------------------------------------
+ 2 files changed, 34 insertions(+), 78 deletions(-)
 
 diff --git a/cothread/cadef.py b/cothread/cadef.py
 index 6651b00..106ce84 100644
@@ -29,10 +29,10 @@ index 6651b00..106ce84 100644
  #   write = ca_write_access(channel_id)
  #
 diff --git a/cothread/load_ca.py b/cothread/load_ca.py
-index 1184ad7..5bdc5af 100644
+index 1184ad7..d5f831b 100644
 --- a/cothread/load_ca.py
 +++ b/cothread/load_ca.py
-@@ -32,94 +32,49 @@
+@@ -32,94 +32,51 @@
  # This file can also be run as a standalone script to discover the path to
  # libca.
  
@@ -80,6 +80,8 @@ index 1184ad7..5bdc5af 100644
 +	'libca.so.3.14.11',
 +	'libca.so.3.14.12',
 +	'libca.so.3.14.12.3',
++	'libca.so.3.15.3',
++	'libca.so.3.16.1',
 +]
 +# Allow user to provide additional names (eg "libca.so.3.15:libca.so.3.15.1")
 +# These are checked first.

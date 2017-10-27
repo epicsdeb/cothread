@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 7),
                python-all-dev, python-all-dbg, dh-python,
                python-numpy,
                python-sphinx,
-               libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3 | libepics3.15.3,
+               libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3 | libepics3.15.3 | libepics3.16.1,
 XS-Python-Version: >= 2.7
 Standards-Version: 3.8.0
 Homepage: http://controls.diamond.ac.uk/downloads/python/cothread/
@@ -16,7 +16,7 @@ Package: python-cothread
 Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
-         libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3,
+         libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3 | libepics3.15.3 | libepics3.16.1,
 Conflicts: python-cothread-doc (<< 1.15)
 XB-Python-Version: ${python:Versions}
 Suggests: python-cothread-doc
