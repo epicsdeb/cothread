@@ -1,8 +1,12 @@
 cothread (2.12-5) UNRELEASED; urgency=medium
 
+  [ Michael Davidsaver ]
   * Added libepics dependency option for base 3.15.3 and 3.16.1
 
- -- Michael Davidsaver <mdavidsaver@bnl.gov>  Fri, 27 Oct 2017 17:38:29 -0500
+  [ Dylan Maxwell ]
+  * Add support for EPICS v3.15.6
+
+ -- Dylan Maxwell <maxwelld@frib.msu.edu>  Thu, 29 Nov 2018 12:02:32 -0500
 
 cothread (2.12-4) unstable; urgency=low
 
