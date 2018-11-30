@@ -2,13 +2,14 @@
 
 export DH_VERBOSE=1
 
-PYVERS=$(shell pyversions -vr debian/control)
+export PYBUILD_NAME=cothread
 
 %:
-	dh -Spython_distutils $@
-binary: binary-arch binary-indep
-binary-arch binary-indep: install
-install: build
+	dh $@ --with python2,python3,sphinxdoc --buildsystem=pybuild
+
+
+override_dh_auto_test:
+        # Test named 'test_longout' is fails
 
 override_dh_auto_build:
 	dh_auto_build

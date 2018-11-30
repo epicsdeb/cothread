@@ -1,0 +1,3 @@
+# Fix problem with "local changes detected"
+# See details: https://wiki.debian.org/Python/FAQ
+extend-diff-ignore="^[^/]+\.egg-info/"

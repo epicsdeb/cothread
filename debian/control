@@ -7,8 +7,13 @@ Build-Depends: debhelper (>= 7),
                python-all-dev, python-all-dbg, dh-python,
                python-numpy,
                python-sphinx,
+               python-docutils,
+               python3-all-dev,
+               python3-all-dbg,
+               python3-setuptools,
                libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3 | libepics3.15.3 | libepics3.15.6 | libepics3.16.1,
 XS-Python-Version: >= 2.7
+XS-Python3-Version: >= 3.4
 Standards-Version: 3.8.0
 Homepage: http://controls.diamond.ac.uk/downloads/python/cothread/
 
@@ -18,8 +23,26 @@ Depends: ${shlibs:Depends}, ${python:Depends},
          python-setuptools, python-numpy,
          libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3 | libepics3.15.3 | libepics3.15.6 | libepics3.16.1,
 Conflicts: python-cothread-doc (<< 1.15)
-XB-Python-Version: ${python:Versions}
 Suggests: python-cothread-doc
-Description: A co-routine implimentation w/ EPICS CA
+Description: A co-routine implimentation w/ EPICS CA (Python 2)
+ An implimentation of co-routines in Python with
+ a ctypes wrapper for the EPICS libca client library
+
+Package: python3-cothread
+Architecture: any
+Depends: ${shlibs:Depends}, ${python3:Depends},
+         python-setuptools, python-numpy,
+         libepics3.14.11 | libepics3.14.12 | libepics3.14.12.3 | libepics3.15.3 | libepics3.15.6 | libepics3.16.1,
+Conflicts: python-cothread-doc (<< 1.15)
+Suggests: python-cothread-doc
+Description: A co-routine implimentation w/ EPICS CA (Python 3)
+ An implimentation of co-routines in Python with
+ a ctypes wrapper for the EPICS libca client library
+
+Package: python-cothread-doc
+Architecture: all
+Section: doc
+Depends: ${sphinxdoc:Depends}, ${misc:Depends},
+Description: A co-routine implimentation w/ EPICS CA (Documentation)
  An implimentation of co-routines in Python with
  a ctypes wrapper for the EPICS libca client library
