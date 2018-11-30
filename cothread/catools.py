@@ -58,6 +58,7 @@ import threading
 from . import cothread
 from . import cadef
 from . import dbr
+from . import py23
 
 from .dbr import *
 from .cadef import *
@@ -68,6 +69,7 @@ __all__ = [
     'caget',            # Read PVs from channel access
     'camonitor',        # Monitor PVs over channel access
     'connect',          # Establish PV connection
+    'cainfo',           # Returns ca_info describing PV connection
 ] + dbr.__all__ + cadef.__all__
 
 
@@ -83,6 +85,11 @@ K = 1024
 # default we use the shared stack to avoid accidents.
 CA_ACTION_STACK         = _check_env('CATOOLS_ACTION_STACK', 0)
 
+
+if sys.version_info < (3,):
+    pv_string_types = (str, unicode)
+else:
+    pv_string_types = str
 
 
 class ca_nothing(Exception):
@@ -102,8 +109,9 @@ class ca_nothing(Exception):
     def __str__(self):
         return '%s: %s' % (self.name, cadef.ca_message(self.errorcode))
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.ok
+    __nonzero__ = __bool__   # For python 2
 
     def __iter__(self):
         '''This is *not* supposed to be an iterable object, but the base class
@@ -145,8 +153,8 @@ def ca_timeout(event, timeout, name):
     ca_nothing timeout exception containing the PV name.'''
     try:
         return event.Wait(timeout)
-    except cothread.Timedout:
-        raise ca_nothing(name, cadef.ECA_TIMEOUT)
+    except cothread.Timedout as timeout:
+        py23.raise_from(ca_nothing(name, cadef.ECA_TIMEOUT), timeout)
 
 
 # ----------------------------------------------------------------------------
@@ -550,7 +558,7 @@ def camonitor(pvs, callback, **kargs):
         if notify_disconnect is False, and that if the PV subsequently connects
         it will update as normal.
     '''
-    if isinstance(pvs, str):
+    if isinstance(pvs, pv_string_types):
         return _Subscription(pvs, callback, **kargs)
     else:
         return [
@@ -733,7 +741,7 @@ def caget(pvs, **kargs):
     The format of values returned depends on the number of values requested
     for each PV.  If only one value is requested then the value is returned
     as a scalar, otherwise as a numpy array.'''
-    if isinstance(pvs, str):
+    if isinstance(pvs, pv_string_types):
         return caget_one(pvs, **kargs)
     else:
         return caget_array(pvs, **kargs)
@@ -806,7 +814,7 @@ def caput_one(pv, value, datatype=None, wait=False, timeout=5, callback=None):
 
 def caput_array(pvs, values, repeat_value=False, **kargs):
     # Bring the arrays of pvs and values into alignment.
-    if repeat_value or isinstance(values, str):
+    if repeat_value or isinstance(values, pv_string_types):
         # If repeat_value is requested or the value is a string then we treat
         # it as a single value.
         values = [values] * len(pvs)
@@ -877,7 +885,7 @@ def caput(pvs, values, **kargs):
     If caput completed succesfully then .ok is True and .name is the
     corresponding PV name.  If throw=False was specified and a put failed
     then .errorcode is set to the appropriate ECA_ error code.'''
-    if isinstance(pvs, str):
+    if isinstance(pvs, pv_string_types):
         return caput_one(pvs, values, **kargs)
     else:
         return caput_array(pvs, values, **kargs)
@@ -982,10 +990,16 @@ def connect(pvs, **kargs):
         connected to.  If this is set to False then instead for each failing
         PV a sentinel value with .ok == False is returned.
     '''
-    if isinstance(pvs, str):
+    if isinstance(pvs, pv_string_types):
         return connect_one(pvs, **kargs)
     else:
         return connect_array(pvs, **kargs)
+
+
+def cainfo(pvs, **args):
+    '''Returns a ca_info structure for the given PVs.  See the documentation
+    for connect() for more detail.'''
+    return connect(pvs, cainfo = True, wait = True, **args)
 
 
 
@@ -1038,13 +1052,3 @@ class _FlushIo:
         self._flush_io_event.Signal()
 
 _flush_io = _FlushIo()
-
-
-# The value of the exception handler below is rather doubtful...
-if False:
-    @exception_handler
-    def catools_exception(args):
-        '''print ca exception message'''
-        print('catools_exception:', args.ctx, cadef.ca_message(args.stat),
-            file = sys.stderr)
-    cadef.ca_add_exception_event(catools_exception, 0)

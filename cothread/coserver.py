@@ -22,11 +22,20 @@ cothread friendly versions of the socket servers
 from the SocketServer and BaseHTTPServer modules
 """
 
-import SocketServer, BaseHTTPServer, SimpleHTTPServer
+import sys
 
-import cothread
-import cosocket
-import coselect
+if sys.version_info < (3,):
+    from SocketServer import BaseServer, TCPServer, UDPServer, ThreadingMixIn
+    from BaseHTTPServer import HTTPServer, test as _test
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
+
+else:
+    from socketserver import BaseServer, TCPServer, UDPServer, ThreadingMixIn
+    from http.server import HTTPServer, SimpleHTTPRequestHandler, test as _test
+
+from . import cothread
+from . import cosocket
+from . import coselect
 
 __all__ = [
     'BaseServer',
@@ -60,7 +69,7 @@ def _patch(cls):
             self.__shut = cosocket.socketpair()
 
             if hasattr(cls, 'address_family'):
-                self.socket = cosocket.socket(None, None, None, self.socket)
+                self.socket = cosocket.cosocket(_sock = self.socket)
                 if baact:
                     self.server_bind()
                     self.server_activate()
@@ -101,13 +110,13 @@ def _patch(cls):
     return WrappedServer
 
 
-BaseServer = _patch(SocketServer.BaseServer)
-TCPServer  = _patch(SocketServer.TCPServer)
-UDPServer  = _patch(SocketServer.UDPServer)
-HTTPServer = _patch(BaseHTTPServer.HTTPServer)
+BaseServer = _patch(BaseServer)
+TCPServer = _patch(TCPServer)
+UDPServer = _patch(UDPServer)
+HTTPServer = _patch(HTTPServer)
 
 
-class CoThreadingMixIn(SocketServer.ThreadingMixIn):
+class CoThreadingMixIn(ThreadingMixIn):
     def process_request(self, request, client_address):
         cothread.Spawn(self.process_request_thread, request, client_address)
 
@@ -115,10 +124,9 @@ class CoThreadingUDPServer(CoThreadingMixIn, UDPServer): pass
 class CoThreadingTCPServer(CoThreadingMixIn, TCPServer): pass
 class CoThreadingHTTPServer(CoThreadingMixIn, HTTPServer): pass
 
-def test(HandlerClass = SimpleHTTPServer.SimpleHTTPRequestHandler,
-         ServerClass = CoThreadingHTTPServer):
-    BaseHTTPServer.test(HandlerClass, ServerClass)
-
+def test(HandlerClass=SimpleHTTPRequestHandler,
+         ServerClass=CoThreadingHTTPServer):
+    _test(HandlerClass, ServerClass)
 
 if __name__ == '__main__':
     test()

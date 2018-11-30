@@ -74,14 +74,20 @@ import time
 import bisect
 import traceback
 import collections
-import thread
+import threading
 
 from . import _coroutine
+from . import py23
 
 if os.environ.get('COTHREAD_CHECK_STACK'):
     _coroutine.enable_check_stack(True)
 
 from . import coselect
+
+if sys.version_info >= (3,):
+    import _thread
+else:
+    import thread as _thread
 
 
 __all__ = [
@@ -92,6 +98,7 @@ __all__ = [
     'Yield',            # Suspend task for immediate resumption
 
     'Event',            # Event for waiting and signalling
+    'RLock',            # Recursive lock
     'Pulse',            # Event for dynamic condition variables
     'EventQueue',       # Queue of objects with event handling
     'ThreadedEventQueue',   # Event queue designed to work with threads
@@ -108,6 +115,8 @@ __all__ = [
 
     'Timer',            # One-shot cancellable timer
     'Callback',         # Simple asynchronous synchronisation
+    'CallbackResult',   # Asynchronous synchronisation with result
+    'scheduler_thread_id', # For checking we're in cothread's thread
 ]
 
 
@@ -248,7 +257,7 @@ class _Wakeup(object):
             self.__task = None
 
             # Each queue needs to be cancelled if it's not the wakeup reason.
-            # This test also properly deals with _WAKEUP_INTERRUPT, which
+            # This test also properly deals with interrupt wakeup, which
             # requires both queues to be cancelled.
             if reason != _WAKEUP_NORMAL and self.__queue:
                 self.__queue.cancel()
@@ -269,7 +278,8 @@ class _Wakeup(object):
 # Task wakeup reasons
 _WAKEUP_NORMAL = 0     # Normal wakeup
 _WAKEUP_TIMEOUT = 1    # Wakeup on timeout
-_WAKEUP_INTERRUPT = 2  # Special: transfer scheduler exception to main
+# A third reason, transfering exception to another cothread, is encoded as a
+# tuple.
 
 
 # Important system invariants:
@@ -324,9 +334,9 @@ class _Scheduler(object):
                     if task is main_task:
                         del self.__ready_queue[index]
                         break
-                # All task wakeup entry points will interpret this as a
-                # request to re-raise the exception.
-                _coroutine.switch(main_task, _WAKEUP_INTERRUPT)
+                # All task wakeup entry points will interpret this as a request
+                # to re-raise the exception.  Pass through the exception info.
+                _coroutine.switch(main_task, sys.exc_info())
 
     def __init__(self):
         # List of all tasks that are currently ready to be dispatched.
@@ -430,9 +440,9 @@ class _Scheduler(object):
         result = _coroutine.switch(self.__coroutine, ready_list)
         self.__poll_callback = None
 
-        if result == _WAKEUP_INTERRUPT:
+        if isinstance(result, tuple):
             # This case arises if we are main and the scheduler just died.
-            raise
+            py23.raise_with_traceback(result)
         else:
             return result
 
@@ -477,12 +487,12 @@ class _Scheduler(object):
         # returned to __select().  This last case expects a list of ready
         # descriptors to be returned, so we have to be compatible with this!
         result = _coroutine.switch(self.__coroutine, [])
-        if result == _WAKEUP_INTERRUPT:
+        if isinstance(result, tuple):
             # We get here if main is suspended and the scheduler decides
             # to die.  Make sure our wakeup is cancelled, and then
             # re-raise the offending exception.
             wakeup.wakeup(result)
-            raise
+            py23.raise_with_traceback(result)
         else:
             return result == _WAKEUP_TIMEOUT
 
@@ -509,7 +519,7 @@ class _Scheduler(object):
             return _Wakeup(self.__wakeup_task, queue, self.__timer_queue)
 
     def __wakeup_task(self, task, reason):
-        if reason != _WAKEUP_INTERRUPT:
+        if not isinstance(reason, tuple):
             self.__ready_queue.append((task, reason))
 
     def __wakeup_poll(self, poll_result):
@@ -683,9 +693,10 @@ class Spawn(EventBase):
         # See wait_until() for an explanation of this return value.
         return []
 
-    def __nonzero__(self):
+    def __bool__(self):
         '''Tests whether the event is signalled.'''
         return bool(self.__result)
+    __nonzero__ = __bool__
 
     def Wait(self, timeout = None):
         '''Waits until the task has completed.  May raise an exception if the
@@ -700,7 +711,7 @@ class Spawn(EventBase):
             try:
                 # Re-raise the exception that actually killed the task here
                 # where it can be received by whoever waits on the task.
-                raise result[0], result[1], result[2]
+                py23.raise_with_traceback(result)
             finally:
                 # In this case result and self.__result contain a traceback.  To
                 # avoid circular references which will delay garbage collection,
@@ -741,9 +752,10 @@ class Event(EventBase):
         self.__value = ()
         self.__auto_reset = auto_reset
 
-    def __nonzero__(self):
+    def __bool__(self):
         '''Tests whether the event is signalled.'''
         return bool(self.__value)
+    __nonzero__ = __bool__
 
     def Wait(self, timeout = None):
         '''The caller will block until the event becomes true, or until the
@@ -870,6 +882,7 @@ class EventQueue(EventBase):
 
     def next(self):
         return self.Wait()
+    __next__ = next
 
 
 class ThreadedEventQueue(object):
@@ -895,7 +908,7 @@ class ThreadedEventQueue(object):
         '''Waits for a value to be written to the queue.  This can safely be
         called from either a cothread or another thread: the appropriate form
         of cooperative or normal blocking will be selected automatically.'''
-        if thread.get_ident() == _scheduler_thread_id:
+        if _thread.get_ident() == scheduler_thread_id:
             # Normal cothread case, use cooperative wait
             poll = coselect.poll_list
         else:
@@ -911,7 +924,7 @@ class ThreadedEventQueue(object):
         '''Posts a value to the event queue.  This can safely be called from
         a thread or a cothread.'''
         self.__values.append(value)
-        os.write(self.__signal, '-')
+        os.write(self.__signal, b'-')
 
 
 
@@ -958,7 +971,48 @@ class _Callback:
         self.values.append((action, args))
         if self.waiting:
             self.waiting = False
-            os.write(self.signal, '-')
+            os.write(self.signal, b'-')
+
+
+def CallbackResult(action, *args, **kargs):
+    '''Perform action in the main cothread and return a result.'''
+    callback = kargs.pop('callback_queue', Callback)
+    timeout  = kargs.pop('callback_timeout', None)
+    spawn    = kargs.pop('callback_spawn', True)
+
+    if scheduler_thread_id == _thread.get_ident():
+        return action(*args, **kargs)
+    else:
+        event = threading.Event()
+        action_result = [False, None]
+        def do_action():
+            try:
+                action_result[0] = True
+                action_result[1] = action(*args, **kargs)
+            except:
+                action_result[0] = False
+                action_result[1] = sys.exc_info()
+            event.set()
+
+        # Hand the action over to the cothread carrying thread for action and
+        # wait for the result.
+        if spawn:
+            callback(Spawn, do_action)
+        else:
+            callback(do_action)
+        if not event.wait(timeout):
+            raise Timedout('Timed out waiting for callback result')
+
+        # Return result or raise caught exception as appropriate.
+        ok, result = action_result
+        if ok:
+            return result
+        else:
+            py23.raise_with_traceback(result)
+
+        # Note: raising entire stack backtrace context might be dangerous, need
+        # to think about this carefully, particularly if the corresponding stack
+        # has been swapped out...
 
 
 class Timer(object):
@@ -1090,14 +1144,14 @@ def WaitForQuit(catch_interrupt = True):
 _scheduler = _Scheduler.create()
 # We hang onto the thread ID for the cothread thread (at present there can
 # only be one) so that we can recognise when we're in another thread.
-_scheduler_thread_id = thread.get_ident()
+scheduler_thread_id = _thread.get_ident()
 
 
 # Thread validation: ensure cothreads aren't used across threads!
 def _validate_thread():
-    assert _scheduler_thread_id == thread.get_ident(), \
-        'Cannot use cothread with multiple threads.  Consider using ' \
-        'Callback or ThreadedEventQueue if necessary.'
+    assert scheduler_thread_id == _thread.get_ident(), \
+        'Cannot call into cothread from another thread.  Consider using ' \
+        'Callback or CallbackResult.'
 
 # This is the asynchronous callback method.
 Callback = _Callback()
@@ -1119,3 +1173,50 @@ def Yield(timeout = 0):
     waiting to be run.'''
     _validate_thread()
     _scheduler.do_yield(GetDeadline(timeout))
+
+
+class RLock(object):
+    """A reentrant lock."""
+
+    __slots__ = [
+        '__event',          # Underlying event object
+        '__owner',          # The coroutine that has locked
+        '__count',          # The number of times the owner has locked
+    ]
+
+    def __init__(self):
+        self.__event = Event()
+        # Start off with the event set so acquire will not block
+        self.__event.Signal()
+        self.__owner = None
+        self.__count = 0
+
+    def acquire(self, timeout=None):
+        """Acquire the lock if necessary and increment the recursion level."""
+        # Inspired by threading.RLock
+        me = _coroutine.get_current()
+        if self.__owner and _coroutine.is_equal(self.__owner, me):
+            # if we are the owner then just increment the count
+            self.__count += 1
+        else:
+            # otherwise wait until it is unlocked
+            self.__event.Wait(timeout=timeout)
+            self.__owner = me
+            self.__count = 1
+
+    def release(self):
+        """Release a lock, decrementing the recursion level."""
+        assert self.__owner and _coroutine.is_equal(
+                self.__owner, _coroutine.get_current()), \
+            "cannot release un-acquired lock"
+        self.__count -= 1
+        if self.__count == 0:
+            self.__owner = None
+            # Wakeup one cothread waiting on acquire()
+            self.__event.Signal()
+
+    # Needed to make it a context manager
+    __enter__ = acquire
+
+    def __exit__(self, t, v, tb):
+        self.release()
