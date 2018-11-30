@@ -1,19 +1,16 @@
-From: Michael Davidsaver <mdavidsaver@bnl.gov>
-Date: Sat, 4 Oct 2014 12:17:30 -0400
+From: Dylan Maxwell <maxwelld@frib.msu.edu>
+Date: Fri, 30 Nov 2018 11:40:00 -0500
 Subject: adjust setup.py
 
-hardcode version
-remove -Werror
-don't install pvtree to /usr/bin
 ---
- setup.py | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ setup.py | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
 
 diff --git a/setup.py b/setup.py
-index ec13e77..f2781df 100755
+index 929f128..f147918 100755
 --- a/setup.py
 +++ b/setup.py
-@@ -9,9 +9,6 @@ try:
+@@ -10,9 +10,6 @@ try:
      from setuptools import setup, Extension
  
      setup_args = dict(
@@ -23,26 +20,31 @@ index ec13e77..f2781df 100755
          install_requires = ['numpy'],
          zip_safe = False)
  
-@@ -20,13 +17,9 @@ except ImportError:
-     setup_args = {}
- 
- 
--# these lines allow the version to be specified in Makefile.RELEASE
--version = os.environ.get('MODULEVER', 'unknown')
--
- # Extension module providing core coroutine functionality.  Very similar in
- # spirit to greenlet.
- extra_compile_args = [
--    '-Werror',
-     '-Wall',
-     '-Wextra',
+@@ -47,8 +44,10 @@ extra_compile_args = [
      '-Wno-unused-parameter',
-@@ -53,7 +46,7 @@ if platform.system() == 'Windows':
+     '-Wno-missing-field-initializers',
+     '-Wundef',
++    '-Wshadow',
+     '-Wcast-align',
+     '-Wwrite-strings',
++    '-Wredundant-decls',
+     '-Wmissing-prototypes',
+     '-Wmissing-declarations',
+     '-Wstrict-prototypes']
+@@ -66,7 +65,7 @@ if platform.system() == 'Windows':
  
  setup(
      name = 'cothread',
--    version = version,
-+    version = '2.12',
+-    version = get_version(),
++    version = '2.15',
      description = 'Cooperative threading based utilities',
+     long_description = open('README.rst').read(),
      author = 'Michael Abbott',
-     author_email = 'Michael.Abbott@diamond.ac.uk',
+@@ -75,7 +74,6 @@ setup(
+     license = 'GPL2',
+     packages = ['cothread', 'cothread.tools'],
+     ext_modules = ext_modules,
+-    test_suite="tests",
+     classifiers=[
+         'Development Status :: 5 - Production/Stable',
+         'Intended Audience :: Developers',
