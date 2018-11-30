@@ -30,6 +30,7 @@
 standard socket module.'''
 
 import os
+import sys
 import errno
 
 from . import coselect
@@ -48,33 +49,44 @@ def socket_hook():
     '''Replaces the blocking methods in the socket module with the non-blocking
     methods implemented here.  Not safe to call if other threads need the
     original methods.'''
-    _socket.socket = socket
+    _socket.socket = cosocket
     _socket.socketpair = socketpair
 
+
 def socketpair(*args):
-    # For unfathomable reasons socketpair() returns un-wrapped '_socket.socket'
-    # So they are only wrapped once.
-    return tuple(map(lambda S: socket(_sock = S), _socket_pair(*args)))
-socketpair.__doc__ = _socket.socketpair.__doc__
+    a, b = _socket_pair(*args)
+    # Now wrap them to make them co-operative if needed
+    if not isinstance(a, cosocket):
+        a = cosocket(_sock = a)
+    if not isinstance(b, cosocket):
+        b = cosocket(_sock = b)
+    return a, b
+socketpair.__doc__ = _socket_pair.__doc__
+
 
 def create_connection(*args, **kargs):
     sock = _socket.create_connection(*args, **kargs)
-    return socket(_sock = sock)
+    return cosocket(_sock = sock)
 create_connection.__doc__ = _socket.create_connection.__doc__
 
-class socket(object):
-    __doc__ = _socket_socket.__doc__
 
-    def wrap(fun):
-        fun.__doc__ = getattr(_socket_socket, fun.__name__).__doc__
-        return fun
+def wrap(fun):
+    fun.__doc__ = getattr(_socket_socket, fun.__name__).__doc__
+    return fun
+
+
+class cosocket(object):
+    __doc__ = _socket_socket.__doc__
 
     def __init__(self,
             family=_socket.AF_INET, type=_socket.SOCK_STREAM, proto=0,
-            _sock=None):
-
+            fileno=None, _sock=None):
+        # This is the real socket object we will defer all calls to
         if _sock is None:
-            _sock = _socket_socket(family, type, proto)
+            if fileno is not None:
+                _sock = _socket_socket(family, type, proto, fileno)
+            else:
+                _sock = _socket_socket(family, type, proto)
         self.__socket = _sock
         self.__socket.setblocking(0)
         self.__timeout = _socket.getdefaulttimeout()
@@ -121,25 +133,23 @@ class socket(object):
         except _socket.error as error:
             return error.errno
 
-
     def __poll(self, event):
         if not coselect.poll_list([(self, event)], self.__timeout):
             raise _socket.error(errno.ETIMEDOUT, 'Timeout waiting for socket')
 
-    def __retry(self, poll, action, args):
+    def __retry(self, event, action, args):
         while True:
             try:
                 return action(*args)
             except _socket.error as error:
                 if error.errno != errno.EAGAIN:
                     raise
-            self.__poll(poll)
-
+            self.__poll(event)
 
     @wrap
     def accept(self):
         sock, addr = self.__retry(coselect.POLLIN, self.__socket.accept, ())
-        return (socket(_sock = sock), addr)
+        return (cosocket(_sock = sock), addr)
 
     @wrap
     def recv(self, *args):
@@ -174,20 +184,37 @@ class socket(object):
 
     @wrap
     def dup(self):
-        return socket(None, None, None, self.__socket.dup())
+        return cosocket(_sock=self.__socket.dup())
 
-    @wrap
-    def makefile(self, *args, **kws):
-        # At this point the actual socket '_socket.socket' is wrapped by either
-        # two layers: 'socket.socket' and this class.  or a single layer: this
-        # class.  In order to handle close() properly we must copy all wrappers,
-        # but not the underlying actual socket.
-        sock = getattr(self.__socket, '_sock', None)
-        if sock: # double wrapped
-            copy0 = _socket_socket(None, None, None, sock)
-            copy1 = socket(None, None, None, copy0)
-        else: # single wrapped
-            copy1 = socket(None, None, None, self.__socket)
-        return _socket._fileobject(copy1, *args, **kws)
+    if sys.version_info < (3,):
+        @wrap
+        def makefile(self, *args, **kws):
+            # At this point the actual socket '_socket.socket' is wrapped by
+            # either two layers: 'socket.socket' and this class.  or a single
+            # layer: this class.  In order to handle close() properly we must
+            # copy all wrappers, but not the underlying actual socket.
+            sock = getattr(self.__socket, '_sock', None)
+            if sock: # double wrapped
+                copy0 = _socket_socket(None, None, None, sock)
+                copy1 = cosocket(None, None, None, copy0)
+            else: # single wrapped
+                copy1 = cosocket(None, None, None, self.__socket)
+            return _socket._fileobject(copy1, *args, **kws)
+    else:
+        @property
+        def _io_refs(self):
+            return self.__socket._io_refs
 
-    del wrap
+        @_io_refs.setter
+        def _io_refs(self, value):
+            self.__socket._io_refs = value
+
+        # Can use the original makefile just so long as we provide the _io_refs
+        # property above.
+        makefile = _socket_socket.makefile
+
+
+del wrap
+
+# Make an alias to it
+socket = cosocket

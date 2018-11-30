@@ -68,7 +68,7 @@ def select_hook():
 # A helpful routine to ensure that our select() behaves as much as possible
 # like the real thing!
 def _AsFileDescriptor(file):
-    if isinstance(file, (int, long)):
+    if isinstance(file, int):
         return file
     else:
         return file.fileno()
@@ -248,6 +248,7 @@ def poll_list(event_list, timeout = None):
     constants).  This routine will cooperatively block until any descriptor
     signals a selected event (or any event from HUP, ERR, NVAL) or until
     the timeout (in seconds) occurs.'''
+    cothread.cothread._validate_thread()
     poller = _Poller(event_list)
     cothread.cothread._scheduler.poll_until(
         poller, cothread.cothread.GetDeadline(timeout))

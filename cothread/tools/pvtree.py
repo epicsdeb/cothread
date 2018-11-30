@@ -1,4 +1,4 @@
-#!/bin/env dls-python
+#!/usr/bin/env python
 
 # Simple tool for viewing the chain of PV dependencies.
 
@@ -6,9 +6,9 @@ from __future__ import print_function
 
 import sys
 import re
+import os
 
 if __name__ == '__main__':
-    import os
     sys.path.append(
         os.path.join(os.path.dirname(__file__), '../..'))
     try:
