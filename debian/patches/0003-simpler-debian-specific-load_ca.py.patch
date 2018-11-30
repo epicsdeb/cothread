@@ -1,11 +1,11 @@
-From: Michael Davidsaver <mdavidsaver@bnl.gov>
-Date: Sat, 4 Oct 2014 12:15:42 -0400
+From: Dylan Maxwell <maxwelld@frib.msu.edu>
+Date: Fri, 30 Nov 2018 13:41:12 -0500
 Subject: simpler debian specific load_ca.py
 
 ---
- cothread/cadef.py   |   3 +-
- cothread/load_ca.py | 128 +++++++++++++++-------------------------------------
- 2 files changed, 38 insertions(+), 93 deletions(-)
+ cothread/cadef.py   |  3 +-
+ cothread/load_ca.py | 99 +++++++++++++++++++----------------------------------
+ 2 files changed, 36 insertions(+), 66 deletions(-)
 
 diff --git a/cothread/cadef.py b/cothread/cadef.py
 index 8d98fa9..c03bda6 100644
@@ -29,10 +29,10 @@ index 8d98fa9..c03bda6 100644
  #   write = ca_write_access(channel_id)
  #
 diff --git a/cothread/load_ca.py b/cothread/load_ca.py
-index 022aaac..2ade1de 100644
+index 022aaac..a96110c 100644
 --- a/cothread/load_ca.py
 +++ b/cothread/load_ca.py
-@@ -32,106 +32,52 @@
+@@ -32,6 +32,10 @@
  # This file can also be run as a standalone script to discover the path to
  # libca.
  
@@ -43,11 +43,8 @@ index 022aaac..2ade1de 100644
  from __future__ import print_function
  
  import ctypes
- import platform
- import os
- 
--
--# Figure out the libraries that need to be loaded and the loading method.
+@@ -42,14 +46,9 @@ import os
+ # Figure out the libraries that need to be loaded and the loading method.
  load_library = ctypes.cdll.LoadLibrary
  system = platform.system()
 -if system == 'Windows':
@@ -57,33 +54,17 @@ index 022aaac..2ade1de 100644
 -    lib_files = ['libca.dylib']
 -else:
 -    lib_files = ['libca.so']
--
--
--# Mapping from host architecture to EPICS host architecture name can be done
--# with a little careful guesswork.  As EPICS architecture names are a little
--# arbitrary this isn't guaranteed to work.
--_epics_system_map = {
--    ('Linux',   '32bit'):   'linux-x86',
--    ('Linux',   '64bit'):   'linux-x86_64',
--    ('Darwin',  '32bit'):   'darwin-x86',
--    ('Darwin',  '64bit'):   'darwin-x86',
--    ('Windows', '32bit'):   'win32-x86',
--    ('Windows', '64bit'):   'windows-x64',  # Not quite yet!
--}
--
--def _get_arch():
--    import os
--    try:
--        return os.environ['EPICS_HOST_ARCH']
--    except KeyError:
--        import platform
--        system = platform.system()
--        bits = platform.architecture()[0]
--        return _epics_system_map[(system, bits)]
--
--epics_host_arch = _get_arch()
--
  
++if system != 'Linux':
++    raise OSError('This version of cothread has been patched in a way which only works on Linux')
+ 
+ # Mapping from host architecture to EPICS host architecture name can be done
+ # with a little careful guesswork.  As EPICS architecture names are a little
+@@ -75,63 +74,35 @@ def _get_arch():
+ 
+ epics_host_arch = _get_arch()
+ 
+-
 -def _libca_path(load_libca_path):
 -    # We look for libca in a variety of different places, searched in order:
 -    #
@@ -101,10 +82,6 @@ index 022aaac..2ade1de 100644
 -    # Next import from configuration file if present, unless this has been
 -    # disabled.
 -    if load_libca_path:
-+if system!='Linux':
-+    raise OSError('This version of cothread has been patched in a way which only works on Linux')
-+
-+
 +# Known to be ABI compatible SO names for libca
 +# Extend the list of directories search in the usual way (eg. LD_LIBRARY_PATH)
 +libnames = [
