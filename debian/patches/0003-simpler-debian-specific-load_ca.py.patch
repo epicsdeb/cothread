@@ -29,7 +29,7 @@ index 8d98fa9..c03bda6 100644
  #   write = ca_write_access(channel_id)
  #
 diff --git a/cothread/load_ca.py b/cothread/load_ca.py
-index 022aaac..a96110c 100644
+index 022aaac..319d63a 100644
 --- a/cothread/load_ca.py
 +++ b/cothread/load_ca.py
 @@ -32,6 +32,10 @@
@@ -94,7 +94,7 @@ index 022aaac..a96110c 100644
 +]
 +# Allow user to provide additional names (eg "libca.so.3.15:libca.so.3.15.1")
 +# These are checked first.
-+libnames = filter(len, os.environ.get('LIBCA_NAMES',"").split(':') ) + libnames
++libnames = list(filter(len, os.environ.get('LIBCA_NAMES',"").split(':'))) + libnames
 +
 +def findca():
 +    for name in libnames:
