@@ -1,4 +1,4 @@
-#!/usr/bin/env dls-python2.6
+#!/usr/bin/env python
 # Simple example of camonitor tool catools library
 
 from __future__ import print_function

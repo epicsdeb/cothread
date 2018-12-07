@@ -1,14 +1,14 @@
-From: Michael Davidsaver <mdavidsaver@bnl.gov>
-Date: Sat, 4 Oct 2014 12:15:42 -0400
+From: Dylan Maxwell <maxwelld@frib.msu.edu>
+Date: Fri, 30 Nov 2018 13:41:12 -0500
 Subject: simpler debian specific load_ca.py
 
 ---
- cothread/cadef.py   |   3 +-
- cothread/load_ca.py | 109 ++++++++++++++++------------------------------------
- 2 files changed, 34 insertions(+), 78 deletions(-)
+ cothread/cadef.py   |  3 +-
+ cothread/load_ca.py | 99 +++++++++++++++++++----------------------------------
+ 2 files changed, 36 insertions(+), 66 deletions(-)
 
 diff --git a/cothread/cadef.py b/cothread/cadef.py
-index 6651b00..106ce84 100644
+index 8d98fa9..c03bda6 100644
 --- a/cothread/cadef.py
 +++ b/cothread/cadef.py
 @@ -33,7 +33,7 @@ See http://www.aps.anl.gov/epics/base/R3-14/11-docs/CAref.html for detailed
@@ -20,19 +20,19 @@ index 6651b00..106ce84 100644
  '''
  
  __all__ = [
-@@ -398,7 +398,6 @@ ca_host_name = libca.ca_host_name
- ca_host_name.argtypes = [ctypes.c_void_p]
+@@ -402,7 +402,6 @@ ca_host_name.argtypes = [ctypes.c_void_p]
  ca_host_name.restype = ctypes.c_char_p
+ ca_host_name.errcheck = py23.auto_decode
  
 -
  #   read = ca_read_access(channel_id)
  #   write = ca_write_access(channel_id)
  #
 diff --git a/cothread/load_ca.py b/cothread/load_ca.py
-index 1184ad7..d5f831b 100644
+index 022aaac..319d63a 100644
 --- a/cothread/load_ca.py
 +++ b/cothread/load_ca.py
-@@ -32,94 +32,51 @@
+@@ -32,6 +32,10 @@
  # This file can also be run as a standalone script to discover the path to
  # libca.
  
@@ -43,11 +43,8 @@ index 1184ad7..d5f831b 100644
  from __future__ import print_function
  
  import ctypes
- import platform
- import os
- 
--
--# Figure out the libraries that need to be loaded and the loading method.
+@@ -42,14 +46,9 @@ import os
+ # Figure out the libraries that need to be loaded and the loading method.
  load_library = ctypes.cdll.LoadLibrary
  system = platform.system()
 -if system == 'Windows':
@@ -58,9 +55,16 @@ index 1184ad7..d5f831b 100644
 -else:
 -    lib_files = ['libca.so']
  
-+if system!='Linux':
++if system != 'Linux':
 +    raise OSError('This version of cothread has been patched in a way which only works on Linux')
  
+ # Mapping from host architecture to EPICS host architecture name can be done
+ # with a little careful guesswork.  As EPICS architecture names are a little
+@@ -75,63 +74,35 @@ def _get_arch():
+ 
+ epics_host_arch = _get_arch()
+ 
+-
 -def _libca_path(load_libca_path):
 -    # We look for libca in a variety of different places, searched in order:
 -    #
@@ -69,11 +73,15 @@ index 1184ad7..d5f831b 100644
 -    # 2  If the libca_path module is present we accept the value it defines.
 -    # 3. Check for local copies of the libca file(s).
 -    # 4. Finally check for EPICS_BASE and compute appropriate architecture
- 
+-
 -    # First allow a forced override
 -    libca_path = os.environ.get('CATOOLS_LIBCA_PATH')
 -    if libca_path:
 -        return libca_path
+-
+-    # Next import from configuration file if present, unless this has been
+-    # disabled.
+-    if load_libca_path:
 +# Known to be ABI compatible SO names for libca
 +# Extend the list of directories search in the usual way (eg. LD_LIBRARY_PATH)
 +libnames = [
@@ -81,15 +89,13 @@ index 1184ad7..d5f831b 100644
 +	'libca.so.3.14.12',
 +	'libca.so.3.14.12.3',
 +	'libca.so.3.15.3',
++	'libca.so.3.15.6',
 +	'libca.so.3.16.1',
 +]
 +# Allow user to provide additional names (eg "libca.so.3.15:libca.so.3.15.1")
 +# These are checked first.
-+libnames = filter(len, os.environ.get('LIBCA_NAMES',"").split(':') ) + libnames
- 
--    # Next import from configuration file if present, unless this has been
--    # disabled.
--    if load_libca_path:
++libnames = list(filter(len, os.environ.get('LIBCA_NAMES',"").split(':'))) + libnames
++
 +def findca():
 +    for name in libnames:
          try:
@@ -108,19 +114,6 @@ index 1184ad7..d5f831b 100644
 -    # No local install, no local configuration, no override.  Try for standard
 -    # environment variable configuration instead.
 -    epics_base = os.environ['EPICS_BASE']
--    # Mapping from host architecture to EPICS host architecture name can be done
--    # with a little careful guesswork.  As EPICS architecture names are a little
--    # arbitrary this isn't guaranteed to work.
--    system_map = {
--        ('Linux',   '32bit'):   'linux-x86',
--        ('Linux',   '64bit'):   'linux-x86_64',
--        ('Darwin',  '32bit'):   'darwin-x86',
--        ('Darwin',  '64bit'):   'darwin-x86',
--        ('Windows', '32bit'):   'win32-x86',
--        ('Windows', '64bit'):   'windows-x64',  # Not quite yet!
--    }
--    bits = platform.architecture()[0]
--    epics_host_arch = system_map[(system, bits)]
 -    return os.path.join(epics_base, 'lib', epics_host_arch)
 -
 +            lib = load_library(name)
@@ -133,15 +126,16 @@ index 1184ad7..d5f831b 100644
 +in your environment.  If your libca has a different (or no) SONAME then
 +Set LIBCA_NAMES to a colon seperated list of SONAMEs.
 +"""%(', '.join(libnames)))
++
++libca, libca_name = findca()
  
--if __name__ == '__main__':
+ if __name__ == '__main__':
 -    # If run standalone we are a helper script.  Write out the relevant
 -    # definitions for the use of our caller.
 -    libca_path = _libca_path(False)
 -    print('CATOOLS_LIBCA_PATH=\'%s\'' % libca_path)
 -    print('LIB_FILES=\'%s\'' % ' '.join(lib_files))
-+libca, libca_name = findca()
- 
+-
 -else:
 -    # Load the library (or libraries).
 -    try:
@@ -158,5 +152,4 @@ index 1184ad7..d5f831b 100644
 -        else:
 -            for lib in lib_files:
 -                libca = load_library(os.path.join(libca_path, lib))
-+if __name__=='__main__':
 +    print("Found libca as: '%s'"%libca_name)

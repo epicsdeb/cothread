@@ -3,18 +3,18 @@ Date: Sat, 4 Oct 2014 12:13:32 -0400
 Subject: remove unused Makefiles
 
 ---
- Makefile        | 48 ------------------------------------------------
+ Makefile        | 62 ---------------------------------------------------------
  Makefile.config | 10 ----------
- 2 files changed, 58 deletions(-)
+ 2 files changed, 72 deletions(-)
  delete mode 100644 Makefile
  delete mode 100644 Makefile.config
 
 diff --git a/Makefile b/Makefile
 deleted file mode 100644
-index d6331df..0000000
+index 4a15af6..0000000
 --- a/Makefile
 +++ /dev/null
-@@ -1,48 +0,0 @@
+@@ -1,62 +0,0 @@
 -TOP = .
 -
 -# This includes Makefile.private which is written by the make system, before
@@ -48,8 +48,19 @@ index d6331df..0000000
 -            --install-dir=$(INSTALL_DIR) \
 -            --script-dir=$(SCRIPT_DIR) dist/*.egg
 -
+-# publish
+-publish: default
+-	$(PYTHON) setup.py sdist upload -r pypi
+-
+-# publish to test pypi
+-testpublish: default
+-	$(PYTHON) setup.py sdist upload -r pypitest
+-
 -docs: cothread/_coroutine.so
 -	sphinx-build -b html docs docs/html
+-
+-test:
+-	$(PYTHON) setup.py test
 -
 -clean_docs:
 -	rm -rf docs/html
@@ -63,6 +74,9 @@ index d6331df..0000000
 -
 -cothread/_coroutine.so: $(wildcard context/*.c context/*.h)
 -	$(PYTHON) setup.py build_ext -i
+-
+-build_ext: cothread/_coroutine.so
+-.PHONY: build_ext
 diff --git a/Makefile.config b/Makefile.config
 deleted file mode 100644
 index d8bde6b..0000000

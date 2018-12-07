@@ -31,8 +31,19 @@ install: dist
             --install-dir=$(INSTALL_DIR) \
             --script-dir=$(SCRIPT_DIR) dist/*.egg
 
+# publish
+publish: default
+	$(PYTHON) setup.py sdist upload -r pypi
+
+# publish to test pypi
+testpublish: default
+	$(PYTHON) setup.py sdist upload -r pypitest
+
 docs: cothread/_coroutine.so
 	sphinx-build -b html docs docs/html
+
+test:
+	$(PYTHON) setup.py test
 
 clean_docs:
 	rm -rf docs/html
@@ -46,3 +57,6 @@ cothread/libca_path.py:
 
 cothread/_coroutine.so: $(wildcard context/*.c context/*.h)
 	$(PYTHON) setup.py build_ext -i
+
+build_ext: cothread/_coroutine.so
+.PHONY: build_ext

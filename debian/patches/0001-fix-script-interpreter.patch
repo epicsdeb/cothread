@@ -1,114 +1,233 @@
-From: Michael Davidsaver <mdavidsaver@bnl.gov>
-Date: Sat, 4 Oct 2014 12:12:46 -0400
+From: Dylan Maxwell <maxwelld@frib.msu.edu>
+Date: Fri, 30 Nov 2018 11:33:35 -0500
 Subject: fix script interpreter
 
-use distro default /usr/bin/python
 ---
- context/tests/coco.py    | 2 +-
- context/tests/leak.py    | 2 +-
- cothread/tools/pvtree.py | 2 +-
- examples/camonitor.py    | 2 +-
- examples/caput.py        | 2 +-
- examples/qt_monitor.py   | 2 +-
- examples/scope_epics.py  | 2 +-
- examples/simple.py       | 2 +-
- setup.py                 | 2 +-
- tests/caget_failure.py   | 2 +-
- tests/caget_structure.py | 2 +-
- tests/camonitor.big.py   | 2 +-
- tests/camonitor_test.py  | 2 +-
- tests/interactive.py     | 2 +-
- tests/leaktest.py        | 2 +-
- tests/load.py            | 2 +-
- tests/plottest.py        | 2 +-
- tests/test-modal.py      | 2 +-
- tests/test-select.py     | 2 +-
- tests/testthreads.py     | 2 +-
- tests/timing-test.py     | 2 +-
+ context/tests/coco.py        | 2 +-
+ context/tests/leak.py        | 2 +-
+ cothread/tools/pvtree.py     | 2 +-
+ examples/camonitor.py        | 2 +-
+ examples/caput.py            | 2 +-
+ examples/qt_monitor.py       | 2 +-
+ examples/scope_epics.py      | 2 +-
+ examples/simple.py           | 2 +-
+ old_tests/caget_failure.py   | 2 +-
+ old_tests/caget_structure.py | 2 +-
+ old_tests/camonitor.big.py   | 2 +-
+ old_tests/camonitor_test.py  | 2 +-
+ old_tests/interactive.py     | 2 +-
+ old_tests/leaktest.py        | 2 +-
+ old_tests/load.py            | 2 +-
+ old_tests/plottest.py        | 2 +-
+ old_tests/test-modal.py      | 2 +-
+ old_tests/test-select.py     | 2 +-
+ old_tests/testthreads.py     | 2 +-
+ old_tests/timing-test.py     | 2 +-
+ setup.py                     | 2 +-
  21 files changed, 21 insertions(+), 21 deletions(-)
 
 diff --git a/context/tests/coco.py b/context/tests/coco.py
-index 4464d9b..6661a07 100755
+index d86bf08..6661a07 100755
 --- a/context/tests/coco.py
 +++ b/context/tests/coco.py
 @@ -1,4 +1,4 @@
--#!/dls_sw/tools/python2.4-debug/bin/python2.4
+-#!/usr/bin/env python
 +#!/usr/bin/python
  
  from __future__ import print_function
  
 diff --git a/context/tests/leak.py b/context/tests/leak.py
-index 8c886dd..b852863 100755
+index ac0c735..b852863 100755
 --- a/context/tests/leak.py
 +++ b/context/tests/leak.py
 @@ -1,4 +1,4 @@
--#!/dls_sw/tools/python2.4-debug/bin/python2.4
+-#!/usr/bin/env python
 +#!/usr/bin/python
  
  from __future__ import print_function
  
 diff --git a/cothread/tools/pvtree.py b/cothread/tools/pvtree.py
-index 2e6c4a9..209aba8 100755
+index f303aff..4672778 100755
 --- a/cothread/tools/pvtree.py
 +++ b/cothread/tools/pvtree.py
 @@ -1,4 +1,4 @@
--#!/bin/env dls-python
+-#!/usr/bin/env python
 +#!/usr/bin/python
  
  # Simple tool for viewing the chain of PV dependencies.
  
 diff --git a/examples/camonitor.py b/examples/camonitor.py
-index 61ef6a7..65fff10 100755
+index a5354e7..65fff10 100755
 --- a/examples/camonitor.py
 +++ b/examples/camonitor.py
 @@ -1,4 +1,4 @@
--#!/usr/bin/env dls-python2.6
+-#!/usr/bin/env python
 +#!/usr/bin/python
  # Simple example of camonitor tool catools library
  
  from __future__ import print_function
 diff --git a/examples/caput.py b/examples/caput.py
-index fc6ce08..f4a0849 100755
+index cb971ca..f4a0849 100755
 --- a/examples/caput.py
 +++ b/examples/caput.py
 @@ -1,4 +1,4 @@
--#!/usr/bin/env dls-python2.6
+-#!/usr/bin/env python
 +#!/usr/bin/python
  # Simple example of caget tool using cothread.
  
  from __future__ import print_function
 diff --git a/examples/qt_monitor.py b/examples/qt_monitor.py
-index 25d26d8..eafc357 100755
+index 6845599..eafc357 100755
 --- a/examples/qt_monitor.py
 +++ b/examples/qt_monitor.py
 @@ -1,4 +1,4 @@
--#!/usr/bin/env dls-python2.6
+-#!/usr/bin/env python
 +#!/usr/bin/python
  
  '''minimal Qt example'''
  
 diff --git a/examples/scope_epics.py b/examples/scope_epics.py
-index fb0e65c..df62760 100755
+index 742a877..d36d0da 100755
 --- a/examples/scope_epics.py
 +++ b/examples/scope_epics.py
 @@ -1,4 +1,4 @@
--#!/usr/bin/env dls-python2.6
+-#!/usr/bin/env python
 +#!/usr/bin/python
  
  '''Form Example with Monitor'''
  
 diff --git a/examples/simple.py b/examples/simple.py
-index 3116629..6902758 100755
+index 85bd23f..6902758 100755
 --- a/examples/simple.py
 +++ b/examples/simple.py
 @@ -1,4 +1,4 @@
--#!/bin/env dls-python2.6
+-#!/usr/bin/env python
 +#!/usr/bin/python
  
  '''Channel Access Example'''
  
+diff --git a/old_tests/caget_failure.py b/old_tests/caget_failure.py
+index bb0d373..4854e64 100755
+--- a/old_tests/caget_failure.py
++++ b/old_tests/caget_failure.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Channel Access Get Structure'''
+ 
+diff --git a/old_tests/caget_structure.py b/old_tests/caget_structure.py
+index bc39c7f..2821c16 100755
+--- a/old_tests/caget_structure.py
++++ b/old_tests/caget_structure.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Channel Access Get Structure'''
+ 
+diff --git a/old_tests/camonitor.big.py b/old_tests/camonitor.big.py
+index c5ff6fa..58be578 100755
+--- a/old_tests/camonitor.big.py
++++ b/old_tests/camonitor.big.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ # Simple example of camonitor tool using greenlets etcetera.
+ 
+ import sys
+diff --git a/old_tests/camonitor_test.py b/old_tests/camonitor_test.py
+index 90c97b1..077b66a 100755
+--- a/old_tests/camonitor_test.py
++++ b/old_tests/camonitor_test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''camonitor minimal example'''
+ 
+diff --git a/old_tests/interactive.py b/old_tests/interactive.py
+index 764bd59..bee6272 100755
+--- a/old_tests/interactive.py
++++ b/old_tests/interactive.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import os
+ 
+diff --git a/old_tests/leaktest.py b/old_tests/leaktest.py
+index 1ab1084..b05edc5 100755
+--- a/old_tests/leaktest.py
++++ b/old_tests/leaktest.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ '''Tests for memory leaks.'''
+ 
+diff --git a/old_tests/load.py b/old_tests/load.py
+index 7f24b57..5618a01 100755
+--- a/old_tests/load.py
++++ b/old_tests/load.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ 
+diff --git a/old_tests/plottest.py b/old_tests/plottest.py
+index 4a17643..8bdfde4 100755
+--- a/old_tests/plottest.py
++++ b/old_tests/plottest.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import sys
+ 
+diff --git a/old_tests/test-modal.py b/old_tests/test-modal.py
+index d3c6ef1..a6236f0 100755
+--- a/old_tests/test-modal.py
++++ b/old_tests/test-modal.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ import cothread
+diff --git a/old_tests/test-select.py b/old_tests/test-select.py
+index a67a1a6..a7716b6 100755
+--- a/old_tests/test-select.py
++++ b/old_tests/test-select.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ # Testing coselect
+ 
+diff --git a/old_tests/testthreads.py b/old_tests/testthreads.py
+index 50823e9..d299e8c 100755
+--- a/old_tests/testthreads.py
++++ b/old_tests/testthreads.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import require
+ from cothread.cothread import *
+diff --git a/old_tests/timing-test.py b/old_tests/timing-test.py
+index 15ecac7..d46ae34 100755
+--- a/old_tests/timing-test.py
++++ b/old_tests/timing-test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++#!/usr/bin/python3
+ 
+ import greenlet
+ import time
 diff --git a/setup.py b/setup.py
-index ed9e807..ec13e77 100755
+index 097e37a..929f128 100755
 --- a/setup.py
 +++ b/setup.py
 @@ -1,4 +1,4 @@
@@ -117,123 +236,3 @@ index ed9e807..ec13e77 100755
  
  import glob
  import os
-diff --git a/tests/caget_failure.py b/tests/caget_failure.py
-index 5a2b486..08bea8f 100755
---- a/tests/caget_failure.py
-+++ b/tests/caget_failure.py
-@@ -1,4 +1,4 @@
--#!/bin/env python2.6
-+#!/usr/bin/python
- 
- '''Channel Access Get Structure'''
- 
-diff --git a/tests/caget_structure.py b/tests/caget_structure.py
-index 1d786a7..fb6ca1b 100755
---- a/tests/caget_structure.py
-+++ b/tests/caget_structure.py
-@@ -1,4 +1,4 @@
--#!/bin/env python2.6
-+#!/usr/bin/python
- 
- '''Channel Access Get Structure'''
- 
-diff --git a/tests/camonitor.big.py b/tests/camonitor.big.py
-index 7615dcb..1f90d6b 100755
---- a/tests/camonitor.big.py
-+++ b/tests/camonitor.big.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- # Simple example of camonitor tool using greenlets etcetera.
- 
- from __future__ import print_function
-diff --git a/tests/camonitor_test.py b/tests/camonitor_test.py
-index 6ff3b61..56d11c0 100755
---- a/tests/camonitor_test.py
-+++ b/tests/camonitor_test.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- '''camonitor minimal example'''
- 
-diff --git a/tests/interactive.py b/tests/interactive.py
-index 5e7f0fc..13a3bea 100755
---- a/tests/interactive.py
-+++ b/tests/interactive.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- from __future__ import print_function
- 
-diff --git a/tests/leaktest.py b/tests/leaktest.py
-index 392afb8..ae88303 100755
---- a/tests/leaktest.py
-+++ b/tests/leaktest.py
-@@ -1,4 +1,4 @@
--#!/dls_sw/tools/python2.4-debug/bin/python2.4
-+#!/usr/bin/python
- 
- '''Tests for memory leaks.'''
- 
-diff --git a/tests/load.py b/tests/load.py
-index eee4a02..7b53cb4 100755
---- a/tests/load.py
-+++ b/tests/load.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- from __future__ import print_function
- 
-diff --git a/tests/plottest.py b/tests/plottest.py
-index 8da9e93..a9e8797 100755
---- a/tests/plottest.py
-+++ b/tests/plottest.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env dls-python2.6
-+#!/usr/bin/python
- 
- from __future__ import print_function
- 
-diff --git a/tests/test-modal.py b/tests/test-modal.py
-index c710537..f3acb44 100755
---- a/tests/test-modal.py
-+++ b/tests/test-modal.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- from __future__ import print_function
- 
-diff --git a/tests/test-select.py b/tests/test-select.py
-index 8dd5ae3..fc1cf98 100755
---- a/tests/test-select.py
-+++ b/tests/test-select.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- # Testing coselect
- 
-diff --git a/tests/testthreads.py b/tests/testthreads.py
-index 97e3218..dd80197 100755
---- a/tests/testthreads.py
-+++ b/tests/testthreads.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- from __future__ import print_function
- 
-diff --git a/tests/timing-test.py b/tests/timing-test.py
-index 5a2f969..94df705 100755
---- a/tests/timing-test.py
-+++ b/tests/timing-test.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python2.6
-+#!/usr/bin/python
- 
- from __future__ import print_function
- 

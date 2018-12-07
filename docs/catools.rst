@@ -425,6 +425,13 @@ Functions
         ``.ok==False`` is returned.
 
 
+..  function:: cainfo(pvs, timeout=5, throw=True)
+
+    This is an alias for :func:`connect` with `cainfo` and `wait` set to
+    ``True``.  Returns a :class:`ca_info` structure containing information about
+    the connected PV or a list of structures, as appropriate.
+
+
 ..  _Values:
 
 Working with Values
@@ -587,12 +594,13 @@ used to control the type of the data returned:
 
     4.  Any :class:`numpy.dtype` compatible with any of the above values.
 
-    5.  One of the special values :const:`DBR_CHAR_STR` or
-        :const:`DBR_CHAR_UNICODE`.  This is used to request a char array which
-        is then converted to a Python string or Unicode string on receipt.  It
-        is not sensible to specify `count` with this option.  The option
-        :const:`DBR_CHAR_UNICODE` is meaningless and not supported
-        for :func:`caput`.
+    5.  One of the special values :const:`DBR_CHAR_STR`,
+        :const:`DBR_CHAR_UNICODE`, or :const:`DBR_CHAR_BYTES`.  This is used to
+        request a char array which is then converted to a Python :class:`str`
+        :class:`unicode` or :class:`bytes` string on receipt.  It is not
+        sensible to specify `count` with this option.  The options
+        :const:`DBR_CHAR_BYTES` and :const:`DBR_CHAR_UNICODE` are meaningless
+        and not supported for :func:`caput`.
 
         Note that if the PV name ends in ``$`` and `datatype` is not specified
         then :const:`DBR_CHAR_STR` will be used.
@@ -894,19 +902,45 @@ deleted.
     change in future releases.
 
 
-..  class:: PV(pv, on_update=None, timeout=5, **kargs)
+..  class:: PV(pv, on_update=None, initial_value=None, caput_wait=False, \
+    [initial_timeout], **kargs)
 
     Creates a wrapper to monitor *pv*.  If an *on_update* function is passed it
     will be called with the class instance as argument after each update to the
-    instance.  The *timeout* is used the first time the class is interrogated to
-    check whether a connection has been established.  The *kargs* are passed
-    through to the called :func:`camonitor`.
+    instance.  The *kargs* are passed through to the called :func:`camonitor`.
+    The flag *caput_wait* can be set to change the default behaviour of
+    :meth:`caput`.
+
+    The behaviour of the first call to :meth:`get` is affected by two arguments,
+    *initial_value* and *initial_timeout*, at most one of which can be
+    specified.  If *initial_timeout* is specified then the first call to
+    :meth:`get` will block until this timeout expires or a valid PV value is
+    available.  Otherwise *initial_value* can be set to specify a value to
+    return until the PV has updated.
+
+    ..  note::
+
+        This is an incompatible change from cothread versions 2.11 and 2.12.  In
+        these versions the *initial_timeout* argument is named *timeout*,
+        defaults to 5, and cannot be unset.
+
+    Note that blocking on a PV object for the initial update cannot be safely
+    done from within a camonitor callback, as in this case the blocking
+    operation is waiting for a camonitor callback to occur, and only one
+    camonitor callback is processed at a time.
 
     ..  method:: close()
 
         Closes the associated :func:`camonitor`.  No further updates will occur.
         Note that it is sufficient to drop all references to the class, it will
         then automatically call :meth:`close`.
+
+    ..  method:: sync([timeout])
+
+        This call will block until the :class:`PV` object has seen at least one
+        update.  If *initial_timeout* was specified in the constructor then its
+        associated deadline can be used as a default timeout, otherwise a
+        *timeout* must be specified.
 
     ..  method:: get()
 
@@ -941,7 +975,9 @@ deleted.
     ..  method:: caput(value, ** kargs)
 
         Directly calls :func:`caput` on the underlying PV with the given
-        arguments.
+        arguments.  If *caput_wait* was set in the original :class:`PV`
+        constructor then by default :func:`caput` is called with ``wait=True``,
+        otherwise :func:`caput` is non blocking.
 
     ..  attribute:: name
 
@@ -955,14 +991,17 @@ deleted.
         new_value)``.
 
 
-..  class:: PV_array(pvs, dtype=float, count=1, on_update=None, **kargs)
+..  class:: PV_array(pvs, dtype=float, count=1, on_update=None, \
+    caput_wait=False, **kargs)
 
     Uses *pvs* to create an aggregate array containing the value of all
     specified PVs aggregated into a single :mod:`numpy` array.  The type of all
     the elements is specified by *dtype* and the number of points contributed by
     each PV is given by *count*.  If *count* is 1 the generated array is one
     dimensional of shape ``(len(pvs),)``, otherwise the shape is
-    ``(len(pvs),count)``.
+    ``(len(pvs),count)``.  The flag *caput_wait* can be set to change the
+    default behaviour of :meth:`caput`.
+
 
     At the same time arrays of length ``len(pvs)`` are created for the
     connection status, timestamp and severity of each PV.
@@ -990,7 +1029,11 @@ deleted.
 
     ..  method:: caput(value, ** args)
 
-        Directly calls :func:`caput` on the stored list of PVs.
+        Directly calls :func:`caput` on the stored list of PVs.  If *caput_wait*
+        was set in the original :class:`PV` constructor then by default
+        :func:`caput` is called with ``wait=True``, otherwise :func:`caput` is
+        non blocking.
+
 
     ..  method:: sync(timeout=5, throw=False)
 

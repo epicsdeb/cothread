@@ -1,4 +1,4 @@
-#!/bin/env dls-python2.6
+#!/usr/bin/env python
 
 '''Channel Access Example'''
 
